@@ -1,15 +1,16 @@
 //Includes
-import {Entity} from "./tools/entity.js";
+import {Entity, InputManager} from "./tools/entity.js";
 
 //Globals
 let canvas;
 let canvasContext;
 let entities = [];
+let inputManager = new InputManager();
 
 class App {
     start() {
-        //initial setup
-        canvas = document.getElementById('myCanvas');
+        //Acilista kurulus
+        canvas = document.getElementById('canvas');
         canvasContext = canvas.getContext('2d');
 
 
@@ -21,14 +22,16 @@ class App {
         );
         entities.push(player);
 
-        //At the end of setup get into the main loop
+        //Ana loop a giris
         setInterval(() => this.update(), 1000 / 60); // ~60fps
     }
 
     update() {
-        //clear canvas every frame in the beginning
+        //Her frame canvasi temizleyerek basla
         this.clearCanvas();
+
         for (const entity of entities) {
+            inputManager.handleInput(entity);
             entity.spawnEntity(canvasContext);
         }
     }
