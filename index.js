@@ -1,7 +1,7 @@
 class App {
     start() {
         //initial setup
-        this.canvas = document.getElementById('canvas');
+        this.canvas = document.getElementById('myCanvas');
         this.ctx = this.canvas.getContext('2d');
 
 
