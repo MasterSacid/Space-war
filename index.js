@@ -1,18 +1,32 @@
 class App {
     start() {
         //initial setup
-        this.canvas = document.getElementById('myCanvas');
+        this.canvas = document.getElementById('canvas');
         this.ctx = this.canvas.getContext('2d');
-
-
-        //At the end of setup get into the main loop
-        setInterval(() => this.update(), 1000 / 60); // ~60fps
     }
 
-    update() {
+    loop(currentTime) {
+        // we use delta time to calculate updates regardless of what fps we get
+        const deltaTime = (currentTime - this.lastTime) / 1000;
+        this.lastTime = currentTime;
+
+        // Make updates based on time how much times has passed
+        this.update(deltaTime);
+        // Make the drawings based on the updates
+        this.draw();
+
+        // keep the animation going by requesting another animation frame
+        requestAnimationFrame((time) => this.loop(time));
+    }
+
+
+    update(dt) {
         //clear canvas every frame in the beginning
         this.clearCanvas();
+    }
 
+    draw() {
+        this.ctx.fillRect(this.canvas.width / 4, this.canvas.height / 4, this.canvas.width / 2, this.canvas.height / 2);
     }
 
     clearCanvas() {
@@ -21,7 +35,6 @@ class App {
 }
 
 
-
 const app = new App();
 app.start();
-app.update();
+requestAnimationFrame((time) => app.loop(time))
