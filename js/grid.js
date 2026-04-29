@@ -37,6 +37,33 @@ export class Grid {
         this.hoveredCell = this.worldToCell(worldX, worldY);
     }
 
+    getCellsInRadius(worldX, worldY, radius) {
+        const cs = this.cellSize;
+        const cellRadius = Math.ceil(radius / cs);
+        const originCell = this.worldToCell(worldX, worldY);
+        const result = [];
+
+        for (let dc = -cellRadius; dc <= cellRadius; dc++) {
+            for (let dr = -cellRadius; dr <= cellRadius; dr++) {
+                const col = originCell.col + dc;
+                const row = originCell.row + dr;
+
+                // World position of this cell's CENTER
+                const cx = col * cs + cs / 2;
+                const cy = row * cs + cs / 2;
+
+                const dx = cx - worldX;
+                const dy = cy - worldY;
+
+                if (Math.sqrt(dx * dx + dy * dy) <= radius) {
+                    result.push({ col, row });
+                }
+            }
+        }
+
+        return result;
+    }
+
     draw(ctx, viewport) {
         const cs = this.cellSize;
 
@@ -53,6 +80,7 @@ export class Grid {
         const endRow   = Math.floor(bottom / cs);
 
         ctx.save();
+
 
         //Hovered cell i boya (Kirmizi renge) ileride bu koda range icinde mi degil mi diye checkler eklenecek
         if (this.hoveredCell) {
@@ -86,4 +114,16 @@ export class Grid {
 
         ctx.restore();
     }
+
+    drawEntityAuras(ctx, entities, radius = 128) {
+        const cs = this.cellSize;
+        for (const entity of entities) {
+            const cells = this.getCellsInRadius(entity.center.x, entity.center.y, radius);
+            ctx.fillStyle = "rgba(0, 100, 255, 0.25)";
+            for (const { col, row } of cells) {
+                ctx.fillRect(col * cs, row * cs, cs, cs);
+            }
+        }
+    }
+
 }

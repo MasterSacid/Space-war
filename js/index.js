@@ -33,7 +33,7 @@ class App {
             this.map.findHoveredCell(mouseX, mouseY, this.viewport);
         });
 
-        this.canvas.style.cursor = 'none';
+        //this.canvas.style.cursor = 'none';
     }
 
     update(currentTime) {
@@ -48,6 +48,8 @@ class App {
         this.map.draw(this.ctx,this.viewport);
         entity.draw(this.ctx);
         entityOther.draw(this.ctx);
+
+        this.map.drawEntityAuras(this.ctx, [entity, entityOther], 128);
 
         // keep the animation going by requesting another animation frame
         requestAnimationFrame((time) => this.update(time));
