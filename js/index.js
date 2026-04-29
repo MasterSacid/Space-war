@@ -25,6 +25,13 @@ class App {
                 this.viewport.coordinate = this.player.entity.center;
             }
         });
+
+        this.canvas.addEventListener('mousemove', (e) => {
+            const rect = this.canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            this.map.findHoveredCell(mouseX, mouseY, this.viewport);
+        });
     }
 
     update(currentTime) {

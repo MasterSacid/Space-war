@@ -2,6 +2,7 @@ export class Grid {
     constructor(cellSize = 64) {
         this.cellSize = cellSize;
         this.cells = {};
+        this.hoveredCell = null; // { col, row }
     }
 
     // Dünya koordinatından hücre indeksine
@@ -28,6 +29,14 @@ export class Grid {
         this.cells[`${col},${row}`] = data;
     }
 
+
+    // Mouse ekran koordinatını dünya koordinatına çevirip hücreyi bul
+    findHoveredCell(mouseX, mouseY, viewport) {
+        const worldX = mouseX + viewport.coordinate.x - viewport.center.x;
+        const worldY = mouseY + viewport.coordinate.y - viewport.center.y;
+        this.hoveredCell = this.worldToCell(worldX, worldY);
+    }
+
     draw(ctx, viewport) {
         const cs = this.cellSize;
 
@@ -44,6 +53,16 @@ export class Grid {
         const endRow   = Math.floor(bottom / cs);
 
         ctx.save();
+
+        //Hovered cell i boya (Kirmizi renge) ileride bu koda range icinde mi degil mi diye checkler eklenecek
+        if (this.hoveredCell) {
+            const { x, y } = this.cellToWorld(this.hoveredCell.col, this.hoveredCell.row);
+            ctx.fillStyle = "rgba(255, 0, 0, 0.35)";
+            ctx.fillRect(x, y, cs, cs);
+        }
+
+
+        //--------- Cell Cizme ----------
         ctx.strokeStyle = "#3a7a3a";
         ctx.lineWidth = 1;
 
