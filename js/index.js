@@ -32,6 +32,8 @@ class App {
             const mouseY = e.clientY - rect.top;
             this.map.findHoveredCell(mouseX, mouseY, this.viewport);
         });
+
+        this.canvas.style.cursor = 'none';
     }
 
     update(currentTime) {
