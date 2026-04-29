@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 
-<html style="margin: 0;">
+<html>
     <head>
-        <title>HoldMyPlace</title>
-        <style>
-            @font-face {
-                font-family: 'Monoton';
-                src: url('./fonts/Monoton-Regular.ttf') format('truetype');
-            }
-        </style>
+        <link rel="stylesheet" href="./styles.css">
+        <title>G8000</title>
     </head>
-    <body style="margin: 0;">
-        <div style="height:100vh;display:flex;justify-content:center;align-items:center;">
+    <body>
+        <div id="mainContainer">
             <canvas id="canvas" width="1080" height="720" style="border:1px solid #000000;"></canvas>
+            <div id="mainMenu">
+                <h1 id="title">HIDE US G8000</h1>
+                <button id="playButton">Play</button>
+            </div>
+            <div id="terminalPane"></div>
+            <div id="statusPane">
+                <div id="G8000"></div>
+                <div id="G8000Text">G8000</div>
+            </div>
         </div>
     <script src="./js/index.js" type="module"></script>
     </body>
