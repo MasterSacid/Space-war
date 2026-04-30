@@ -1,44 +1,46 @@
-import { Entity, Player } from "./entity.js";
-import { Coordinate } from "./utils.js";
 import { Viewport } from "./viewport.js";
 import { MainMenu, SpaceScene, StatusPane, TerminalPane } from "./ui.js"
-
-const entity = new Entity(new Coordinate(0, 0), "Player");
-const entityOther = new Entity(new Coordinate(100, 200), "Other");
+import { Coordinate, sleep } from "./utils.js";
 
 class App {
     start() {
         //initial setup
         this.canvas = document.getElementById('canvas');
         this.ctx = this.canvas.getContext('2d');
-        this.viewport = new Viewport(this.canvas, entity.center);
-        this.player = new Player(canvas, entity);
+        this.viewport = new Viewport(this.canvas, new Coordinate(0, 0));
         this.mainMenu = new MainMenu(canvas);
         this.spaceScene = new SpaceScene(canvas);
         this.statusPane = new StatusPane(canvas);
         this.statusPane = new StatusPane(canvas);
-        this.TerminalPane = new TerminalPane(canvas);
+        this.terminalPane = new TerminalPane(canvas);
+
+        this.addText = (string, letterPerSec) => new Promise((resolve) => {
+            this.terminalPane.addText(string, letterPerSec, resolve);
+        });
 
         this.lastTime = 0;
 
-        this.mainMenu.playBtn.addEventListener("click", () => this.mainMenuHide());
+        this.mainMenu.playBtn.addEventListener("click", () => {
+            this.mainMenu.off();
+            this.statusPane.on();
+            this.terminalPane.on();
 
-        window.addEventListener('keydown', (e) => {
-            if (e.key.toLowerCase() === 'j') {
-                this.player.entity = (this.player.entity === entity) ? entityOther : entity;
-                this.viewport.coordinate = this.player.entity.center;
-            }
-            if (e.key.toLowerCase() === '=') {
-                this.viewport.zoom += 0.1;
-                this.viewport.zoom = (this.viewport.zoom > 2) ? 2 : this.viewport.zoom;
-            }
-            if (e.key.toLowerCase() === '-') {
-                this.viewport.zoom -= 0.1;
-                this.viewport.zoom = (this.viewport.zoom < 0.5) ? 0.5 : this.viewport.zoom;
-            }
+            this.story();
         });
-        // ENABLE main menu from here.
-        // this.mainMenuShow();
+
+        this.mainMenu.on();
+        this.spaceScene.visible = true;
+    }
+
+    async story() {
+        await sleep(200);
+        await this.addText("Systems rebooting...", 6);
+        //await sleep(2000);
+        this.statusPane.G8000Online();
+        await this.addText("Systems reboot complete", 20);
+        await sleep(1000);
+        await this.addText("[G8000]: You are finally awake captain.", 20);
+        await this.addText("[G8000]: After the last missile the alien ships have sent us, you banged your head pretty bad.", 20);
     }
 
     update(currentTime) {
@@ -49,41 +51,20 @@ class App {
         // Make logic updates here
         if (this.spaceScene.visible) this.spaceScene.update(deltaTime);
 
-        entity.update(deltaTime);
-        this.player.update(deltaTime);
-        this.TerminalPane.update(deltaTime);
+        this.terminalPane.update(deltaTime);
 
         // Make drawings here
         this.viewport.reset();
         this.spaceScene.draw();
         this.mainMenu.draw();
         this.statusPane.draw();
-        this.TerminalPane.draw();
-
-        if (!(this.mainMenu.fullscreen && this.mainMenu.visible)) {
-            this.viewport.transform();
-            entity.draw(this.ctx);
-            entityOther.draw(this.ctx);
-        }
+        this.terminalPane.draw();
 
         // keep the animation going by requesting another animation frame
         requestAnimationFrame((time) => this.update(time));
     }
     clearCanvas() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    }
-
-    mainMenuShow() {
-        this.mainMenu.on();
-        this.spaceScene.visible = true;
-    }
-
-    mainMenuHide() {
-        this.mainMenu.off();
-        this.spaceScene.visible = false;
-
-        this.statusPane.visible = true;
-        this.TerminalPane.visible = true;
     }
 }
 

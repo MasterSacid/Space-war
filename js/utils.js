@@ -1,4 +1,7 @@
+export const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 export class Coordinate {
+
     constructor(x, y) {
         this.x = x;
         this.y = y;

@@ -1,3 +1,5 @@
+import { sleep } from "./utils.js";
+
 class Window {
     constructor(canvas, width = 100, height = 100, x = 0, y = 0) {
         this.canvas = canvas;
@@ -63,7 +65,7 @@ export class SpaceScene extends Window {
 
         this.stars = [];
 
-        this.smallMode = true;
+        this.smallMode = false;
         this.visible = true;
         this.generateSpace();
     }
@@ -101,8 +103,6 @@ export class SpaceScene extends Window {
 
     update(dt) {
         this.bgZ += 0.1 * dt;
-        //this.bgX -= 10 * dt;
-        //this.bgY -= 10 * dt;
     }
 
     calculateStarCount() {
@@ -113,34 +113,62 @@ export class SpaceScene extends Window {
 export class StatusPane extends Window {
     constructor(canvas) {
         super(canvas, canvas.width / 4, canvas.height, 0, 0);
+        this.container = document.getElementById("statusPane");
+        this.G8000 = document.getElementById("G8000");
+    }
+
+    async G8000Online() {
+        this.G8000.style.background = "radial-gradient(circle at center, #cccc99 var(--inner-radius), #000000 40%,yellow 50%, #778787 80%)"
+        await sleep(600)
+        this.G8000.classList.remove("is-blinking");
+    }
+    G8000Offline() {
+        this.G8000.style.background = "radial-gradient(circle at center, black var(--inner-radius),yellow 70%, #778787 80%)"
+        this.G8000.classList.add("is-blinking");
+    }
+
+
+    on() {
+        this.container.style.display = "flex"
         this.visible = true;
+    }
+
+    off() {
+        this.container.style.display = "none"
+        this.visible = false;
     }
 
     show() {
     }
 
-    update() { }
+    update(dt) {
+    }
 }
 
 export class TerminalPane extends Window {
     constructor(canvas) {
         super(canvas, canvas.width / 3, canvas.height, canvas.width * 2 / 3, 0);
-        this.visible = true;
         this.container = document.getElementById("terminalPane");
+        this.container.style.display = "none";
         this.pendingText = [];
-        this.addText("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.", 10);
-        this.addText("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.", 20);
-        this.addText("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.", 30);
-        console.log(this.pendingText);
     }
 
-    addText(string, letterPerSec) {
+    on() {
+        this.container.style.display = "flex"
+    }
+
+    off() {
+        this.container.style.display = "none"
+    }
+
+
+    addText(string, letterPerSec, complete) {
         const textElement = document.createElement("div");
         this.container.appendChild(textElement);
         if (letterPerSec <= 0) {
             textElement.textContent = string;
         } else {
-            this.pendingText.push({ str: string, letterPerSec: letterPerSec, current: 0, progress: 0, element: textElement });
+            this.pendingText.push({ str: string, letterPerSec: letterPerSec, current: 0, progress: 0, element: textElement, onComplete: complete });
         }
     }
 
@@ -148,20 +176,28 @@ export class TerminalPane extends Window {
     }
 
     update(dt) {
-        for (let i = 0; i < this.pendingText.length; i++) {
+        for (let i = this.pendingText.length - 1; i >= 0; i--) {
             const text = this.pendingText[i];
+            const timePerLetter = 1 / text.letterPerSec;
 
             text.progress += dt;
 
-            while (text.progress > 1 / text.letterPerSec) {
-                text.element.textContent += text.str.at(text.current);
+            let charsToAppend = "";
+
+            while (text.progress > timePerLetter) {
+                charsToAppend += text.str.at(text.current);
                 text.current++;
+                text.progress -= timePerLetter;
+
                 if (text.current >= text.str.length) {
+                    if (text.onComplete) text.onComplete();
                     this.pendingText.splice(i, 1);
-                    --i;
                     break;
                 }
-                text.progress -= 1 / text.letterPerSec;
+            }
+
+            if (charsToAppend.length > 0) {
+                text.element.textContent += charsToAppend;
             }
         }
     }
