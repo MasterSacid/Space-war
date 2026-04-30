@@ -1,8 +1,10 @@
 export class Grid {
-    constructor(cellSize = 64) {
+    constructor(cellSize = 64, player) {
         this.cellSize = cellSize;
         this.cells = {};
         this.hoveredCell = null; // { col, row }
+        this.player = player;
+        this.trackedEntities = [];
     }
 
     // Dünya koordinatından hücre indeksine
@@ -37,25 +39,17 @@ export class Grid {
         this.hoveredCell = this.worldToCell(worldX, worldY);
     }
 
-    getCellsInRadius(worldX, worldY, radius) {
-        const cs = this.cellSize;
-        const cellRadius = Math.ceil(radius / cs);
-        const originCell = this.worldToCell(worldX, worldY);
+    getCellsInRadius(worldX, worldY, cellRadius = 1) {
+        const centerCell = this.worldToCell(worldX, worldY);
         const result = [];
 
-        for (let dc = -cellRadius; dc <= cellRadius; dc++) {
-            for (let dr = -cellRadius; dr <= cellRadius; dr++) {
-                const col = originCell.col + dc;
-                const row = originCell.row + dr;
+        for (let dc = -Math.floor(cellRadius); dc <= Math.ceil(cellRadius); dc++) {
+            for (let dr = -Math.floor(cellRadius); dr <= Math.ceil(cellRadius); dr++) {
+                const col = centerCell.col + dc;
+                const row = centerCell.row + dr;
 
-                // World position of this cell's CENTER
-                const cx = col * cs + cs / 2;
-                const cy = row * cs + cs / 2;
-
-                const dx = cx - worldX;
-                const dy = cy - worldY;
-
-                if (Math.sqrt(dx * dx + dy * dy) <= radius) {
+                const cellDist = Math.sqrt(dr ** 2 + dc ** 2);
+                if (cellDist <= cellRadius) {
                     result.push({ col, row });
                 }
             }
@@ -68,25 +62,36 @@ export class Grid {
         const cs = this.cellSize;
 
         // Dunya koordinatina gore hucre konumlarini bul
-        const left   = viewport.coordinate.x - viewport.center.x;
-        const top    = viewport.coordinate.y - viewport.center.y;
-        const right  = viewport.coordinate.x + viewport.center.x;
+        const left = viewport.coordinate.x - viewport.center.x;
+        const top = viewport.coordinate.y - viewport.center.y;
+        const right = viewport.coordinate.x + viewport.center.x;
         const bottom = viewport.coordinate.y + viewport.center.y;
 
         //Dunya koordinatina gore verilen hucreleri screen spacede ekrana koy
-        const startCol = Math.floor(left   / cs);
-        const startRow = Math.floor(top    / cs);
-        const endCol   = Math.floor(right  / cs);
-        const endRow   = Math.floor(bottom / cs);
+        const startCol = Math.floor(left / cs);
+        const startRow = Math.floor(top / cs);
+        const endCol = Math.floor(right / cs);
+        const endRow = Math.floor(bottom / cs);
 
         ctx.save();
 
 
-        //Hovered cell i boya (Kirmizi renge) ileride bu koda range icinde mi degil mi diye checkler eklenecek
         if (this.hoveredCell) {
+            let inRange = false;
+            for (const cell of this.player.entity.cellsInReach) {
+                if (this.hoveredCell.col == cell.col && this.hoveredCell.row == cell.row) {
+                    inRange = true;
+                    break;
+                }
+            }
             const { x, y } = this.cellToWorld(this.hoveredCell.col, this.hoveredCell.row);
-            ctx.fillStyle = "rgba(255, 0, 0, 0.35)";
-            ctx.fillRect(x, y, cs, cs);
+            if (inRange) {
+                ctx.fillStyle = "rgba(0, 255, 0, 0.35)";
+                ctx.fillRect(x, y, cs, cs);
+            } else {
+                ctx.fillStyle = "rgba(255, 0, 0, 0.35)";
+                ctx.fillRect(x, y, cs, cs);
+            }
         }
 
 
@@ -115,15 +120,40 @@ export class Grid {
         ctx.restore();
     }
 
-    drawEntityAuras(ctx, entities, radius = 128) {
+    drawEntityAuras(ctx, radius = 1) {
+        ctx.fillStyle = "rgba(0, 100, 255, 0.25)";
+
         const cs = this.cellSize;
-        for (const entity of entities) {
+        for (const entity of this.trackedEntities) {
             const cells = this.getCellsInRadius(entity.center.x, entity.center.y, radius);
-            ctx.fillStyle = "rgba(0, 100, 255, 0.25)";
+            console.log(cells);
             for (const { col, row } of cells) {
                 ctx.fillRect(col * cs, row * cs, cs, cs);
             }
         }
     }
 
+    updateEntityCells() {
+        for (const entity of this.trackedEntities) {
+            const entityCol = Math.floor(entity.center.x / this.cellSize);
+            const entityRow = Math.floor(entity.center.y / this.cellSize);
+
+            let dirty = false;
+            if (entity.cell.row !== entityRow || entity.cell.col !== entityCol) {
+                dirty = true;
+                entity.cell.row = entityRow;
+                entity.cell.col = entityCol;
+            }
+            if (dirty) {
+                const cells = this.getCellsInRadius(entity.center.x, entity.center.y, entity.reachRadius);
+                console.log(cells);
+                entity.cellsInReach.length = 0
+                entity.cellsInReach.push(...cells);
+            };
+        }
+    }
+
+    update(dt) {
+        this.updateEntityCells();
+    }
 }

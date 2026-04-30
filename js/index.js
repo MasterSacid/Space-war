@@ -1,7 +1,7 @@
 import { Entity, Player } from "./entity.js";
 import { Coordinate } from "./utils.js";
 import { Viewport } from "./viewport.js";
-import {Grid} from "./grid.js";
+import { Grid } from "./grid.js";
 
 
 const entity = new Entity(new Coordinate(0, 0), "Player");
@@ -15,7 +15,7 @@ class App {
         this.ctx = this.canvas.getContext('2d');
         this.viewport = new Viewport(this.canvas, entity.center);
         this.player = new Player(this.canvas, entity);
-        this.map = new Grid(64);
+        this.map = new Grid(64, this.player);
 
         this.lastTime = 0;
 
@@ -33,6 +33,8 @@ class App {
             this.map.findHoveredCell(mouseX, mouseY, this.viewport);
         });
 
+        this.map.trackedEntities = [entity, entityOther];
+
         //this.canvas.style.cursor = 'none';
     }
 
@@ -44,12 +46,16 @@ class App {
         entity.update(deltaTime);
         this.player.update(deltaTime);
 
+        this.map.update();
+
         this.viewport.reset();
-        this.map.draw(this.ctx,this.viewport);
+
+        this.map.drawEntityAuras(this.ctx, 3);
+        this.map.draw(this.ctx, this.viewport);
+
         entity.draw(this.ctx);
         entityOther.draw(this.ctx);
 
-        this.map.drawEntityAuras(this.ctx, [entity, entityOther], 128);
 
         // keep the animation going by requesting another animation frame
         requestAnimationFrame((time) => this.update(time));
