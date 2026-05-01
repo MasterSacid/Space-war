@@ -126,7 +126,6 @@ export class Grid {
         const cs = this.cellSize;
         for (const entity of this.trackedEntities) {
             const cells = this.getCellsInRadius(entity.center.x, entity.center.y, radius);
-            console.log(cells);
             for (const { col, row } of cells) {
                 ctx.fillRect(col * cs, row * cs, cs, cs);
             }
@@ -146,7 +145,6 @@ export class Grid {
             }
             if (dirty) {
                 const cells = this.getCellsInRadius(entity.center.x, entity.center.y, entity.reachRadius);
-                console.log(cells);
                 entity.cellsInReach.length = 0
                 entity.cellsInReach.push(...cells);
             };

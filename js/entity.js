@@ -6,8 +6,8 @@ export class Entity {
         this.name = name;
         this.width = 50;
         this.height = 50;
-        this.cell = { row: 0, col: 0 };
-        this.reachRadius = 2;
+        this.cell = { row: undefined, col: undefined };
+        this.reachRadius = 3;
         this.cellsInReach = [];
     }
 
