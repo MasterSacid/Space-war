@@ -202,3 +202,50 @@ export class TerminalPane extends Window {
         }
     }
 }
+
+export class dialogPane extends Window {
+    constructor(canvas) {
+        super(canvas);
+        this.container = document.getElementById("dialogPane");
+        this.container.style.display = "none";
+        this.dialogIdCounter = 0;
+    }
+
+    on() {
+        this.container.style.display = "flex";
+    }
+
+    off() {
+        this.container.style.display = "none";
+    }
+
+    addDialog(title, description, select = "select", cb, onSelect) {
+        const dialogHTML = `
+            <div id="dialog-${this.dialogIdCounter}" class="dialogDecision">
+                <div class="dialogHeader">${title}</div>
+                <div class="dialogDescription">${description}</div>
+                <div class="dialogButton">${select}</div>
+            </div>
+        `;
+
+        this.container.insertAdjacentHTML("beforeend", dialogHTML);
+
+        const newDialog = this.container.querySelector(`#dialog-${this.dialogIdCounter}`);
+
+        newDialog.querySelector('.dialogHeader').textContent = title;
+        newDialog.querySelector('.dialogDescription').textContent = description;
+        newDialog.querySelector('.dialogButton').textContent = select;
+
+        newDialog.querySelector('.dialogButton').addEventListener("click", () => {
+            if (cb) cb();
+            if (onSelect) onSelect();
+            this.clear();
+        });
+
+        this.dialogIdCounter++
+    }
+
+    clear() {
+        this.container.innerHTML = "";
+    }
+}

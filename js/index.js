@@ -1,5 +1,5 @@
 import { Viewport } from "./viewport.js";
-import { MainMenu, SpaceScene, StatusPane, TerminalPane } from "./ui.js"
+import { MainMenu, SpaceScene, StatusPane, TerminalPane, dialogPane } from "./ui.js"
 import { Coordinate, sleep } from "./utils.js";
 
 class App {
@@ -13,9 +13,15 @@ class App {
         this.statusPane = new StatusPane(canvas);
         this.statusPane = new StatusPane(canvas);
         this.terminalPane = new TerminalPane(canvas);
+        this.dialogPane = new dialogPane(canvas);
 
         this.addText = (string, letterPerSec) => new Promise((resolve) => {
             this.terminalPane.addText(string, letterPerSec, resolve);
+        });
+
+
+        this.addDialog = (title, description, select = "select", onSelect) => new Promise((resolve) => {
+            this.dialogPane.addDialog(title, description, select, resolve, onSelect);
         });
 
         this.lastTime = 0;
@@ -24,6 +30,7 @@ class App {
             this.mainMenu.off();
             this.statusPane.on();
             this.terminalPane.on();
+            this.dialogPane.on();
 
             this.story();
         });
@@ -33,14 +40,18 @@ class App {
     }
 
     async story() {
-        await sleep(200);
-        await this.addText("Systems rebooting...", 6);
+        //await sleep(200);
+        //await this.addText("Systems rebooting...", 6);
         //await sleep(2000);
-        this.statusPane.G8000Online();
-        await this.addText("Systems reboot complete", 20);
-        await sleep(1000);
-        await this.addText("[G8000]: You are finally awake captain.", 20);
-        await this.addText("[G8000]: After the last missile the alien ships have sent us, you banged your head pretty bad.", 20);
+        //this.statusPane.G8000Online();
+        //await this.addText("Systems reboot complete", 20);
+        //await sleep(1000);
+        //await this.addText("[G8000]: You are finally awake captain.", 20);
+        //await this.addText("[G8000]: After the last missile the alien ships have sent us, you banged your head pretty bad.", 20);
+
+        await this.addDialog("First Title", "First Dialog", "select", () => this.addText("I knew you would press select", 10));
+        this.addDialog("First Title", "First Dialog", "select", () => this.addText("I knew you would press select", 10));
+        await this.addDialog("First Title", "First Dialog", "select", () => this.addText("I knew you would press select", 10));
     }
 
     update(currentTime) {
