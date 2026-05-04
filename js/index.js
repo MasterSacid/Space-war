@@ -4,8 +4,9 @@ import { Viewport } from "./viewport.js";
 import { Grid } from "./grid.js";
 
 
-const entity = new Entity(new Coordinate(0, 0), "Player");
-const entityOther = new Entity(new Coordinate(100, 200), "Other");
+const entity = new Entity(new Coordinate(-96, 32), "Player");
+const wallofentities = Array.from({ length: 7 }, (_, i) => new Entity(new Coordinate(224, 224 - i * 64), "Wall"));
+console.log(wallofentities);
 
 
 class App {
@@ -19,21 +20,20 @@ class App {
 
         this.lastTime = 0;
 
-        window.addEventListener('keydown', (e) => {
-            if (e.key.toLowerCase() === 'j') {
-                this.player.entity = (this.player.entity === entity) ? entityOther : entity;
-                this.viewport.coordinate = this.player.entity.center;
+        this.canvas.addEventListener('mousemove', (e) => {
+            const pos = this.viewport.screenToWorld(e.clientX, e.clientY);
+            this.map.findHoveredCell(pos.x, pos.y);
+        });
+
+        this.canvas.addEventListener("mousedown", () => {
+            const success = this.player.entity.moveToCell(this.map.cellSize, this.map.hoveredCell);
+            if (success) {
+                const oldPos = this.map.worldToCell(this.player.entity.center.x, this.player.entity.center.y);
+                this.map.appendCell(oldPos.col, oldPos.row, { occupied: false, entity: null });
             }
         });
 
-        this.canvas.addEventListener('mousemove', (e) => {
-            const rect = this.canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-            this.map.findHoveredCell(mouseX, mouseY, this.viewport);
-        });
-
-        this.map.trackedEntities = [entity, entityOther];
+        this.map.trackedEntities = [entity, ...wallofentities];
 
         //this.canvas.style.cursor = 'none';
     }
@@ -50,11 +50,15 @@ class App {
 
         this.viewport.reset();
 
-        this.map.drawEntityAuras(this.ctx, 3);
         this.map.draw(this.ctx, this.viewport);
 
+        wallofentities.forEach(entity => {
+            entity.draw(this.ctx);
+        });
+
+
         entity.draw(this.ctx);
-        entityOther.draw(this.ctx);
+
 
 
         // keep the animation going by requesting another animation frame

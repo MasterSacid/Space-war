@@ -31,11 +31,14 @@ export class Grid {
         this.cells[`${col},${row}`] = data;
     }
 
+    appendCell(col, row, data) {
+        const cellData = this.getCell(col, row);
+        this.setCell(col, row, { ...cellData, ...data });
+    }
+
 
     // Mouse ekran koordinatını dünya koordinatına çevirip hücreyi bul
-    findHoveredCell(mouseX, mouseY, viewport) {
-        const worldX = mouseX + viewport.coordinate.x - viewport.center.x;
-        const worldY = mouseY + viewport.coordinate.y - viewport.center.y;
+    findHoveredCell(worldX, worldY) {
         this.hoveredCell = this.worldToCell(worldX, worldY);
     }
 
@@ -77,13 +80,7 @@ export class Grid {
 
 
         if (this.hoveredCell) {
-            let inRange = false;
-            for (const cell of this.player.entity.cellsInReach) {
-                if (this.hoveredCell.col == cell.col && this.hoveredCell.row == cell.row) {
-                    inRange = true;
-                    break;
-                }
-            }
+            let inRange = this.player.entity.isCellInReach(this.hoveredCell);
             const { x, y } = this.cellToWorld(this.hoveredCell.col, this.hoveredCell.row);
             if (inRange) {
                 ctx.fillStyle = "rgba(0, 255, 0, 0.35)";
@@ -117,37 +114,52 @@ export class Grid {
             ctx.stroke();
         }
 
+        this.drawPlayerAura(ctx);
+
         ctx.restore();
     }
 
-    drawEntityAuras(ctx, radius = 1) {
-        ctx.fillStyle = "rgba(0, 100, 255, 0.25)";
-
+    // Erisilebilir kayitli hucreleri cizer.
+    drawPlayerAura(ctx) {
         const cs = this.cellSize;
-        for (const entity of this.trackedEntities) {
-            const cells = this.getCellsInRadius(entity.center.x, entity.center.y, radius);
+        const entity = this.player.entity;
+        if (entity.showAura) {
+            const cells = entity.cellsInReach;
+            if (entity == this.player.entity) ctx.fillStyle = "rgba(0, 100, 255, 0.25)";
+            else ctx.fillStyle = "rgba(160, 160, 0, 0.25)";
+
             for (const { col, row } of cells) {
                 ctx.fillRect(col * cs, row * cs, cs, cs);
             }
         }
     }
 
+    // Erisilebilir hucreleri entity icine kaydeder
     updateEntityCells() {
         for (const entity of this.trackedEntities) {
-            const entityCol = Math.floor(entity.center.x / this.cellSize);
-            const entityRow = Math.floor(entity.center.y / this.cellSize);
+            if (entity.showAura) {
+                const entityCol = Math.floor(entity.center.x / this.cellSize);
+                const entityRow = Math.floor(entity.center.y / this.cellSize);
 
-            let dirty = false;
-            if (entity.cell.row !== entityRow || entity.cell.col !== entityCol) {
-                dirty = true;
-                entity.cell.row = entityRow;
-                entity.cell.col = entityCol;
+                let dirty = false;
+                if (entity.cell.row !== entityRow || entity.cell.col !== entityCol) {
+                    dirty = true;
+                    entity.cell.row = entityRow;
+                    entity.cell.col = entityCol;
+                }
+                if (dirty) {
+                    const cells = this.getCellsInRadius(entity.center.x, entity.center.y, entity.reachRadius);
+                    const centerCell = this.worldToCell(entity.center.x, entity.center.y);
+                    this.appendCell(centerCell.col, centerCell.row, { occupied: true, entity: entity });
+                    entity.cellsInReach.length = 0
+                    for (const cell of cells) {
+                        const cellData = this.getCell(cell.col, cell.row);
+                        if (!cellData || !cellData.occupied) {
+                            entity.cellsInReach.push(cell);
+                        }
+                    }
+                }
             }
-            if (dirty) {
-                const cells = this.getCellsInRadius(entity.center.x, entity.center.y, entity.reachRadius);
-                entity.cellsInReach.length = 0
-                entity.cellsInReach.push(...cells);
-            };
         }
     }
 
