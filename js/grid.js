@@ -27,6 +27,16 @@ export class Grid {
         return this.cells[`${col},${row}`] ?? null;
     }
 
+    getAdjacentCells(cell) {
+        return [
+            this.getCell(cell.col + 1, cell.row) ?? { col: cell.col + 1, row: cell.row },
+            this.getCell(cell.col - 1, cell.row) ?? { col: cell.col - 1, row: cell.row },
+            this.getCell(cell.col, cell.row + 1) ?? { col: cell.col, row: cell.row + 1 },
+            this.getCell(cell.col, cell.row - 1) ?? { col: cell.col, row: cell.row - 1 },
+        ];
+    }
+
+
     setCell(col, row, data) {
         this.cells[`${col},${row}`] = data;
     }

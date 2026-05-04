@@ -1,12 +1,11 @@
 import { Entity, Player } from "./entity.js";
-import { Coordinate } from "./utils.js";
+import { Coordinate, astar } from "./utils.js";
 import { Viewport } from "./viewport.js";
 import { Grid } from "./grid.js";
 
 
 const entity = new Entity(new Coordinate(-96, 32), "Player");
 const wallofentities = Array.from({ length: 7 }, (_, i) => new Entity(new Coordinate(224, 224 - i * 64), "Wall"));
-console.log(wallofentities);
 
 
 class App {
@@ -26,6 +25,9 @@ class App {
         });
 
         this.canvas.addEventListener("mousedown", () => {
+            const centerCell = { col: Math.floor(this.player.entity.center.x / 64), row: Math.floor(this.player.entity.center.y / 64) };
+            astar(centerCell, this.map.hoveredCell, () => this.map.getAdjacentCells);
+
             const success = this.player.entity.moveToCell(this.map.cellSize, this.map.hoveredCell);
             if (success) {
                 const oldPos = this.map.worldToCell(this.player.entity.center.x, this.player.entity.center.y);
@@ -69,7 +71,6 @@ class App {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 }
-
 
 const app = new App();
 app.start();

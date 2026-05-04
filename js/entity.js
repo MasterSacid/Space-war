@@ -1,4 +1,4 @@
-import { Coordinate, lerp } from "./utils.js";
+import { Coordinate, lerp, astar } from "./utils.js";
 
 export class Entity {
     constructor(center = new Coordinate(0, 0), name = "Empty") {
