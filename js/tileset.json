@@ -1,0 +1,24 @@
+{
+  "Tileset": [
+    {
+    "tilesetName": "spaceship",
+    "tilesetPath": "spaceship.png",
+    "tileSize": 32,
+    "tilesPerRow": 10,
+    "tileCoords": [
+      { "name": "wall0", "index": 0 },
+      { "name": "wall1", "index": 1 },
+      { "name": "wall2", "index": 2 },
+      { "name": "wall3", "index": 10 },
+      { "name": "wall4", "index": 11 },
+      { "name": "wall5", "index": 12 },
+      { "name": "wall6", "index": 20 },
+      { "name": "wall7", "index": 21 },
+      { "name": "wall8", "index": 22 }
+    ],
+    "tileGroups": [
+      { "groupName": "Walls" , "groupSize": 9,"offset": 0 }
+    ]
+  }
+  ]
+}

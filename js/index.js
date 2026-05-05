@@ -26,7 +26,7 @@ class App {
 
         this.canvas.addEventListener("mousedown", () => {
             const centerCell = { col: Math.floor(this.player.entity.center.x / 64), row: Math.floor(this.player.entity.center.y / 64) };
-            astar(centerCell, this.map.hoveredCell, () => this.map.getAdjacentCells);
+            //astar(centerCell, this.map.hoveredCell, () => this.map.getAdjacentCells);
 
             const success = this.player.entity.moveToCell(this.map.cellSize, this.map.hoveredCell);
             if (success) {
