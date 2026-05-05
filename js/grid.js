@@ -2,9 +2,14 @@ export class Grid {
     constructor(cellSize = 64, player) {
         this.cellSize = cellSize;
         this.cells = {};
+        this.paintedTiles = new Map();
         this.hoveredCell = null; // { col, row }
         this.player = player;
         this.trackedEntities = [];
+    }
+
+    cellKey(col, row) {
+        return `${col},${row}`;
     }
 
     // Dünya koordinatından hücre indeksine
@@ -24,7 +29,7 @@ export class Grid {
     }
 
     getCell(col, row) {
-        return this.cells[`${col},${row}`] ?? null;
+        return this.cells[this.cellKey(col, row)] ?? null;
     }
 
     getAdjacentCells(cell) {
@@ -38,12 +43,20 @@ export class Grid {
 
 
     setCell(col, row, data) {
-        this.cells[`${col},${row}`] = data;
+        this.cells[this.cellKey(col, row)] = data;
     }
 
     appendCell(col, row, data) {
         const cellData = this.getCell(col, row);
         this.setCell(col, row, { ...cellData, ...data });
+    }
+
+    paintTile(col, row, tileset, tileIndex) {
+        this.paintedTiles.set(this.cellKey(col, row), { col, row, tileset, tileIndex });
+    }
+
+    clearTile(col, row) {
+        this.paintedTiles.delete(this.cellKey(col, row));
     }
 
 
@@ -88,6 +101,7 @@ export class Grid {
 
         ctx.save();
 
+        this.drawPaintedTiles(ctx, startCol, startRow, endCol, endRow);
 
         if (this.hoveredCell) {
             let inRange = this.player.entity.isCellInReach(this.hoveredCell);
@@ -129,6 +143,30 @@ export class Grid {
         ctx.restore();
     }
 
+    drawPaintedTiles(ctx, startCol, startRow, endCol, endRow) {
+        ctx.imageSmoothingEnabled = false;
+
+        for (const tile of this.paintedTiles.values()) {
+            if (
+                tile.col < startCol ||
+                tile.col > endCol ||
+                tile.row < startRow ||
+                tile.row > endRow
+            ) {
+                continue;
+            }
+
+            tile.tileset.drawTile(
+                ctx,
+                tile.tileIndex,
+                tile.col * this.cellSize,
+                tile.row * this.cellSize,
+                this.cellSize,
+                this.cellSize
+            );
+        }
+    }
+
     // Erisilebilir kayitli hucreleri cizer.
     drawPlayerAura(ctx) {
         const cs = this.cellSize;
@@ -150,6 +188,8 @@ export class Grid {
             if (entity.showAura) {
                 const entityCol = Math.floor(entity.center.x / this.cellSize);
                 const entityRow = Math.floor(entity.center.y / this.cellSize);
+                const previousCol = entity.cell.col;
+                const previousRow = entity.cell.row;
 
                 let dirty = false;
                 if (entity.cell.row !== entityRow || entity.cell.col !== entityCol) {
@@ -160,6 +200,14 @@ export class Grid {
                 if (dirty) {
                     const cells = this.getCellsInRadius(entity.center.x, entity.center.y, entity.reachRadius);
                     const centerCell = this.worldToCell(entity.center.x, entity.center.y);
+
+                    if (previousCol !== undefined && previousRow !== undefined) {
+                        const previousCell = this.getCell(previousCol, previousRow);
+                        if (previousCell?.entity === entity) {
+                            this.appendCell(previousCol, previousRow, { occupied: false, entity: null });
+                        }
+                    }
+
                     this.appendCell(centerCell.col, centerCell.row, { occupied: true, entity: entity });
                     entity.cellsInReach.length = 0
                     for (const cell of cells) {
