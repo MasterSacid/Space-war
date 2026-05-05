@@ -54,8 +54,8 @@ export class Heap {
         let i = this.array.length - 1;
         while (i > 0) {
             let parentIndex = Math.floor((i - 1) / 2);
-            if (this.comparator(this.array[parentIndex], this.array[i])) {
-                const temp = this.array[parentIndex];
+            const temp = this.array[parentIndex];
+            if (this.comparator(this.array[i], this.array[parentIndex])) {
                 this.array[parentIndex] = this.array[i];
                 this.array[i] = temp;
                 i = parentIndex;
@@ -74,10 +74,10 @@ export class Heap {
             let leftChildIndex = 2 * i + 1;
             let rightChildIndex = 2 * i + 2;
 
-            if (leftChildIndex < length && this.comparator(this.array[chosen], this.array[leftChildIndex])) {
+            if (leftChildIndex < length && this.comparator(this.array[leftChildIndex], this.array[chosen])) {
                 chosen = leftChildIndex;
             }
-            if (rightChildIndex < length && this.comparator(this.array[chosen], this.array[rightChildIndex])) {
+            if (rightChildIndex < length && this.comparator(this.array[rightChildIndex], this.array[chosen])) {
                 chosen = rightChildIndex;
             }
 
@@ -140,6 +140,7 @@ export function astar(start, goal, getNeighbours, h = manhattan) {
         for (const neighbour of neighbours) {
             const neighbourKey = cellToKey(neighbour);
 
+            if (neighbour.occupied) neighbour.cost = Infinity;
             const neighbourCost = neighbour.cost ?? 1;
             const tentativeGScore = gScores.get(cellToKey(current)) + neighbourCost;
 

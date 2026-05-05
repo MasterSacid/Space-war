@@ -26,9 +26,9 @@ class App {
 
         this.canvas.addEventListener("mousedown", () => {
             const centerCell = { col: Math.floor(this.player.entity.center.x / 64), row: Math.floor(this.player.entity.center.y / 64) };
-            astar(centerCell, this.map.hoveredCell, () => this.map.getAdjacentCells);
+            const path = astar(centerCell, this.map.hoveredCell, (cell) => this.map.getAdjacentCells(cell));
 
-            const success = this.player.entity.moveToCell(this.map.cellSize, this.map.hoveredCell);
+            const success = this.player.entity.takePath(this.map.cellSize, path);
             if (success) {
                 const oldPos = this.map.worldToCell(this.player.entity.center.x, this.player.entity.center.y);
                 this.map.appendCell(oldPos.col, oldPos.row, { occupied: false, entity: null });

@@ -29,10 +29,10 @@ export class Grid {
 
     getAdjacentCells(cell) {
         return [
-            this.getCell(cell.col + 1, cell.row) ?? { col: cell.col + 1, row: cell.row },
-            this.getCell(cell.col - 1, cell.row) ?? { col: cell.col - 1, row: cell.row },
-            this.getCell(cell.col, cell.row + 1) ?? { col: cell.col, row: cell.row + 1 },
-            this.getCell(cell.col, cell.row - 1) ?? { col: cell.col, row: cell.row - 1 },
+            { ...this.getCell(cell.col + 1, cell.row), col: cell.col + 1, row: cell.row },
+            { ...this.getCell(cell.col - 1, cell.row), col: cell.col - 1, row: cell.row },
+            { ...this.getCell(cell.col, cell.row + 1), col: cell.col, row: cell.row + 1 },
+            { ...this.getCell(cell.col, cell.row - 1), col: cell.col, row: cell.row - 1 },
         ];
     }
 

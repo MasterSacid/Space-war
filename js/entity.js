@@ -13,7 +13,7 @@ export class Entity {
         this.lerpEnd = new Coordinate(0, 0);
         this.lerping = false;
         this.lerpingProgress = 0;
-        this.lerpDuration = 0.5;
+        this.lerpDuration = 1 / this.reachRadius;
         this.showAura = true;
     }
 
@@ -34,20 +34,22 @@ export class Entity {
         return false;
     }
 
-    moveToCell(cellSize, hoveredCell) {
-        if (this.isCellInReach(hoveredCell)) {
-            this.lerpEnd.x = hoveredCell.col * cellSize + cellSize / 2;
-            this.lerpEnd.y = hoveredCell.row * cellSize + cellSize / 2;
-            this.lerpStart = this.center.clone();
-            this.lerpingProgress = 0;
-            this.lerping = true;
-            this.showAura = false;
+    async takePath(cellSize, path) {
+        this.showAura = false;
+        for (let i = 1; i < path.length; i++) {
+            await new Promise((resolve) => this.moveToCell(cellSize, path[i], resolve));
+        }
+        this.showAura = true;
+    }
 
-            return true;
-        }
-        else {
-            return false;
-        }
+    moveToCell(cellSize, targetCell, resolve) {
+        this.lerpEnd.x = targetCell.col * cellSize + cellSize / 2;
+        this.lerpEnd.y = targetCell.row * cellSize + cellSize / 2;
+        this.lerpStart = this.center.clone();
+        this.lerpingProgress = 0;
+        this.lerping = true;
+        this.resolve = resolve;
+        return true;
     }
 
     update(dt) {
@@ -56,7 +58,7 @@ export class Entity {
             if (this.lerpingProgress >= 1) {
                 this.lerpingProgress = 1;
                 this.lerping = false;
-                this.showAura = true;
+                this.resolve();
             }
 
             const easeout = 1 - (1 - this.lerpingProgress) * (1 - this.lerpingProgress);
