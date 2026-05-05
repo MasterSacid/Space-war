@@ -97,14 +97,19 @@ export function lerp(p0, p1, t) {
     return p0 + (p1 - p0) * t;
 }
 
-const cellToKey = (cell) => `${cell.col},${cell.row}`;
+export const cellToKey = (cell) => `${cell.col},${cell.row}`;
 
-function reconstructPath(goal, cameFrom) {
+export function keyToCell(key) {
+    const array = key.split(',');
+    return { col: parseInt(array[0]), row: parseInt(array[1]) };
+}
+
+export function reconstructPath(goal, cameFrom) {
     const path = [goal];
-    let currentKey = (cellToKey(goal));
+    let currentKey = cellToKey(goal);
 
-    while (cameFrom.has(currentKey)) {
-        const prev = cameFrom.get(currentKey);
+    while (cameFrom.get(currentKey)?.previous != null) {
+        const prev = cameFrom.get(currentKey).previous;
         path.push(prev);
         currentKey = cellToKey(prev);
     }
@@ -124,16 +129,14 @@ export function astar(start, goal, getNeighbours, h = manhattan) {
 
     const startKey = cellToKey(start);
 
-    const gScores = new Map();
-    const cameFrom = new Map();
-
-    gScores.set(startKey, 0);
+    const visits = new Map();
+    visits.set(startKey, { gScore: 0, previous: null });
 
     while (candidates.array.length > 0) {
         const current = candidates.extractMin();
 
         if (current.col === goal.col && current.row === goal.row) {
-            return reconstructPath(goal, cameFrom);
+            return reconstructPath(goal, visits);
         }
 
         const neighbours = getNeighbours(current);
@@ -142,12 +145,11 @@ export function astar(start, goal, getNeighbours, h = manhattan) {
 
             if (neighbour.occupied) neighbour.cost = Infinity;
             const neighbourCost = neighbour.cost ?? 1;
-            const tentativeGScore = gScores.get(cellToKey(current)) + neighbourCost;
+            const tentativeGScore = (visits.get(cellToKey(current))?.previous ?? 0) + neighbourCost;
 
-            const currentGScore = gScores.has(neighbourKey) ? gScores.get(neighbourKey) : Infinity;
+            const currentGScore = visits.has(neighbourKey)?.previous ? visits.get(neighbourKey).previous : Infinity;
             if (tentativeGScore < currentGScore) {
-                gScores.set(neighbourKey, tentativeGScore)
-                cameFrom.set(neighbourKey, current);
+                visits.set(neighbourKey, { tentativeGScore: tentativeGScore, previous: current });
 
                 const newNeighbour = { ...neighbour, fScore: tentativeGScore + h(neighbour, goal) };
                 candidates.insert(newNeighbour);
@@ -156,4 +158,40 @@ export function astar(start, goal, getNeighbours, h = manhattan) {
     }
 
     return null;
+}
+
+export function dijkstra(start, range, getNeighbours) {
+    const candidates = new Heap((a, b) => a.distance < b.distance);
+
+    const backtrack = new Map();
+
+    const startKey = cellToKey(start);
+    candidates.insert(start);
+    backtrack.set(startKey, { cost: 0, previous: null });
+
+    while (candidates.array.length > 0) {
+        const current = candidates.extractMin();
+        if (current.cost === range) {
+            continue;
+        }
+
+        const currentKey = cellToKey(current);
+
+        for (const cell of getNeighbours(current)) {
+            const neighbourKey = cellToKey(cell);
+
+            let neighbourDistance = cell.cost ?? 1;
+            neighbourDistance = cell.occupied ? Infinity : neighbourDistance;
+            const newDistance = (backtrack.get(currentKey)?.cost ?? 1) + neighbourDistance;
+            const oldDistance = backtrack.get(neighbourKey)?.cost ?? Infinity;
+            if (newDistance < oldDistance) {
+                backtrack.set(neighbourKey, { cost: newDistance, previous: current });
+
+                const newNeighbour = { ...cell, cost: newDistance, previous: current };
+                candidates.insert(newNeighbour);
+            }
+        }
+    }
+
+    return backtrack;
 }

@@ -1,3 +1,6 @@
+import { dijkstra, keyToCell } from "./utils.js";
+
+
 export class Grid {
     constructor(cellSize = 64, player) {
         this.cellSize = cellSize;
@@ -124,56 +127,30 @@ export class Grid {
             ctx.stroke();
         }
 
-        this.drawPlayerAura(ctx);
+        this.drawEntityAura(ctx, this.player.entity);
 
         ctx.restore();
     }
 
     // Erisilebilir kayitli hucreleri cizer.
-    drawPlayerAura(ctx) {
-        const cs = this.cellSize;
-        const entity = this.player.entity;
-        if (entity.showAura) {
-            const cells = entity.cellsInReach;
-            if (entity == this.player.entity) ctx.fillStyle = "rgba(0, 100, 255, 0.25)";
-            else ctx.fillStyle = "rgba(160, 160, 0, 0.25)";
-
-            for (const { col, row } of cells) {
-                ctx.fillRect(col * cs, row * cs, cs, cs);
-            }
-        }
-    }
-
-    // Erisilebilir hucreleri entity icine kaydeder
-    updateEntityCells() {
-        for (const entity of this.trackedEntities) {
-            if (entity.showAura) {
-                const entityCol = Math.floor(entity.center.x / this.cellSize);
-                const entityRow = Math.floor(entity.center.y / this.cellSize);
-
-                let dirty = false;
-                if (entity.cell.row !== entityRow || entity.cell.col !== entityCol) {
-                    dirty = true;
-                    entity.cell.row = entityRow;
-                    entity.cell.col = entityCol;
-                }
-                if (dirty) {
-                    const cells = this.getCellsInRadius(entity.center.x, entity.center.y, entity.reachRadius);
-                    const centerCell = this.worldToCell(entity.center.x, entity.center.y);
-                    this.appendCell(centerCell.col, centerCell.row, { occupied: true, entity: entity });
-                    entity.cellsInReach.length = 0
-                    for (const cell of cells) {
-                        const cellData = this.getCell(cell.col, cell.row);
-                        if (!cellData || !cellData.occupied) {
-                            entity.cellsInReach.push(cell);
-                        }
-                    }
-                }
-            }
+    drawEntityAura(ctx, entity) {
+        ctx.fillStyle = "rgba(50,90,255,0.3)";
+        for (const cellStr of entity.dijkstraInfo.keys()) {
+            const cell = keyToCell(cellStr);
+            ctx.fillRect(cell.col * this.cellSize, cell.row * this.cellSize, this.cellSize, this.cellSize);
         }
     }
 
     update(dt) {
-        this.updateEntityCells();
+        for (const entity of this.trackedEntities) {
+            if (entity.dirty) {
+                entity.dirty = false;
+                this.appendCell(entity.cell.col, entity.cell.row, { occupied: true, entity: entity });
+                console.log(this.getCell(entity.cell.col, entity.cell.row));
+            }
+        }
+        for (const entity of this.trackedEntities) {
+            entity.dijkstraInfo = dijkstra(entity.cell, entity.reachRadius, (cell) => this.getAdjacentCells(cell));
+        }
     }
 }

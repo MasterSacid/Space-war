@@ -1,12 +1,10 @@
 import { Entity, Player } from "./entity.js";
-import { Coordinate, astar } from "./utils.js";
+import { Coordinate } from "./utils.js";
 import { Viewport } from "./viewport.js";
 import { Grid } from "./grid.js";
 
-
 const entity = new Entity(new Coordinate(-96, 32), "Player");
-const wallofentities = Array.from({ length: 7 }, (_, i) => new Entity(new Coordinate(224, 224 - i * 64), "Wall"));
-
+const wallofentities = Array.from({ length: 5 }, (_, i) => new Entity(new Coordinate(224, 160 - i * 64), "Wall"));
 
 class App {
     start() {
@@ -16,6 +14,8 @@ class App {
         this.viewport = new Viewport(this.canvas, entity.center);
         this.player = new Player(this.canvas, entity);
         this.map = new Grid(64, this.player);
+        this.player.entity.reachRadius = 5;
+        this.player.entity.lerpDuration = 0.25;
 
         this.lastTime = 0;
 
@@ -25,18 +25,13 @@ class App {
         });
 
         this.canvas.addEventListener("mousedown", () => {
-            const centerCell = { col: Math.floor(this.player.entity.center.x / 64), row: Math.floor(this.player.entity.center.y / 64) };
-            const path = astar(centerCell, this.map.hoveredCell, (cell) => this.map.getAdjacentCells(cell));
-
-            const success = this.player.entity.takePath(this.map.cellSize, path);
+            const success = this.player.entity.takePathTo(this.map.cellSize, this.map.hoveredCell);
             if (success) {
-                const oldPos = this.map.worldToCell(this.player.entity.center.x, this.player.entity.center.y);
-                this.map.appendCell(oldPos.col, oldPos.row, { occupied: false, entity: null });
+                this.map.appendCell(this.player.entity.cell.col, this.player.entity.cell.row, { occupied: false, entity: null });
             }
         });
 
         this.map.trackedEntities = [entity, ...wallofentities];
-
         //this.canvas.style.cursor = 'none';
     }
 
@@ -45,6 +40,7 @@ class App {
         const deltaTime = (currentTime - this.lastTime) / 1000;
         this.lastTime = currentTime;
 
+        wallofentities.forEach((entity) => entity.update());
         entity.update(deltaTime);
         this.player.update(deltaTime);
 

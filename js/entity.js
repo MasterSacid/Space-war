@@ -1,4 +1,4 @@
-import { Coordinate, lerp, astar } from "./utils.js";
+import { Coordinate, lerp, cellToKey, reconstructPath } from "./utils.js";
 
 export class Entity {
     constructor(center = new Coordinate(0, 0), name = "Empty") {
@@ -6,15 +6,20 @@ export class Entity {
         this.name = name;
         this.width = 50;
         this.height = 50;
-        this.cell = { row: undefined, col: undefined };
+        this.cell = { col: undefined, row: undefined };
         this.reachRadius = 3;
         this.cellsInReach = [];
+        this.moving = false;
         this.lerpStart = new Coordinate(0, 0);
         this.lerpEnd = new Coordinate(0, 0);
         this.lerping = false;
         this.lerpingProgress = 0;
         this.lerpDuration = 1 / this.reachRadius;
         this.showAura = true;
+        this.dijkstraInfo = null;
+        this.dirty = true;
+
+        this.update(0);
     }
 
     draw(ctx) {
@@ -26,20 +31,19 @@ export class Entity {
     }
 
     isCellInReach(hoveredCell) {
-        for (const cell of this.cellsInReach) {
-            if (hoveredCell.col == cell.col && hoveredCell.row == cell.row) {
-                return true;
-            }
-        }
-        return false;
+        return this.dijkstraInfo.has(cellToKey(hoveredCell));
     }
 
-    async takePath(cellSize, path) {
+    async takePathTo(cellSize, targetCell) {
+        const path = reconstructPath(targetCell, this.dijkstraInfo);
         this.showAura = false;
+        this.moving = true;
         for (let i = 1; i < path.length; i++) {
             await new Promise((resolve) => this.moveToCell(cellSize, path[i], resolve));
         }
         this.showAura = true;
+        this.moving = false;
+        return true;
     }
 
     moveToCell(cellSize, targetCell, resolve) {
@@ -49,7 +53,6 @@ export class Entity {
         this.lerpingProgress = 0;
         this.lerping = true;
         this.resolve = resolve;
-        return true;
     }
 
     update(dt) {
@@ -65,6 +68,14 @@ export class Entity {
 
             this.center.x = lerp(this.lerpStart.x, this.lerpEnd.x, easeout);
             this.center.y = lerp(this.lerpStart.y, this.lerpEnd.y, easeout);
+        }
+
+        if (!this.moving) {
+            const cell = { col: Math.floor(this.center.x / 64), row: Math.floor(this.center.y / 64) }
+            if (!(this.cell.col == cell.col && this.cell.row == cell.row)) {
+                this.cell = cell;
+                this.dirty = true;
+            }
         }
     }
 }
