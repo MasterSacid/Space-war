@@ -4,6 +4,7 @@ import { Viewport } from "./viewport.js";
 import { Grid } from "./grid.js";
 import { Tileset, TilePalette } from "./tileset.js";
 
+const DEFAULT_MAP_FILE = "map1.json";
 
 const entity = new Entity(new Coordinate(-96, 32), "Player");
 const wallofentities = Array.from({ length: 7 }, (_, i) => new Entity(new Coordinate(224, 224 - i * 64), "Wall"));
@@ -22,6 +23,7 @@ class App {
         this.debugMode = false;
         this.isPainting = false;
         this.lastPaintedCellKey = null;
+        this.selectedMapFile = DEFAULT_MAP_FILE;
 
         this.lastTime = 0;
         this.setupTilesets();
@@ -71,6 +73,10 @@ class App {
         const panel = document.getElementById("tilePanel");
         const toggle = document.getElementById("tilePanelToggle");
         this.modeToggle = document.getElementById("modeToggle");
+        this.mapSelect = document.getElementById("mapSelect");
+        this.loadMapButton = document.getElementById("loadMapButton");
+        this.saveMapButton = document.getElementById("saveMapButton");
+        this.saveStatus = document.getElementById("saveStatus");
 
         this.tilePalette = new TilePalette(paletteContainer, {
             onSelect: (selection) => {
@@ -86,10 +92,15 @@ class App {
                 tilesPerRow: 10
             })
         ];
+        this.tilesetsByName = new Map(tilesets.map((tileset) => [tileset.name, tileset]));
 
         for (const tileset of tilesets) {
             this.tilePalette.addTileset(tileset);
         }
+
+        Promise.all(tilesets.map((tileset) => tileset.ready)).then(() => {
+            this.setupMaps();
+        });
 
         toggle.addEventListener("click", () => {
             const collapsed = panel.classList.toggle("is-collapsed");
@@ -99,6 +110,14 @@ class App {
 
         this.modeToggle.addEventListener("click", () => {
             this.setDebugMode(!this.debugMode);
+        });
+
+        this.loadMapButton.addEventListener("click", () => {
+            this.loadSelectedMap();
+        });
+
+        this.saveMapButton.addEventListener("click", () => {
+            this.saveMap();
         });
     }
 
@@ -113,6 +132,118 @@ class App {
         this.modeToggle.title = enabled
             ? "Debug: WASD hareket, mouse ile tile boya"
             : "Normal: mouse ile hareket";
+    }
+
+    createMapData() {
+        return {
+            version: 1,
+            savedAt: new Date().toISOString(),
+            file: this.selectedMapFile,
+            cellSize: this.map.cellSize,
+            tiles: this.map.exportPaintedTiles()
+        };
+    }
+
+    async setupMaps() {
+        const maps = await this.fetchMapList();
+        this.renderMapOptions(maps);
+
+        this.selectedMapFile = maps[0]?.file ?? DEFAULT_MAP_FILE;
+        this.mapSelect.value = this.selectedMapFile;
+
+        this.mapSelect.addEventListener("change", () => {
+            this.selectedMapFile = this.mapSelect.value;
+            this.loadSelectedMap();
+        });
+
+        await this.loadSelectedMap();
+    }
+
+    async fetchMapList() {
+        try {
+            const response = await fetch("./api/maps", { cache: "no-store" });
+            if (response.ok) {
+                const data = await response.json();
+                if (Array.isArray(data.maps) && data.maps.length > 0) {
+                    return data.maps;
+                }
+            }
+        } catch (error) {
+        }
+
+        try {
+            const response = await fetch("./maps/index.json", { cache: "no-store" });
+            if (response.ok) {
+                const data = await response.json();
+                if (Array.isArray(data.maps) && data.maps.length > 0) {
+                    return data.maps;
+                }
+            }
+        } catch (error) {
+        }
+
+        return [{ name: "Map 1", file: DEFAULT_MAP_FILE }];
+    }
+
+    renderMapOptions(maps) {
+        this.mapSelect.replaceChildren();
+
+        for (const map of maps) {
+            const option = document.createElement("option");
+            option.value = map.file;
+            option.textContent = map.name ?? map.file;
+            this.mapSelect.appendChild(option);
+        }
+    }
+
+    async saveMap() {
+        const mapData = this.createMapData();
+
+        try {
+            const response = await fetch(`./api/maps/${encodeURIComponent(this.selectedMapFile)}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(mapData, null, 2)
+            });
+
+            if (!response.ok) {
+                throw new Error("Map save request failed");
+            }
+
+            this.setSaveStatus(`${this.selectedMapFile} kaydedildi`);
+        } catch (error) {
+            this.setSaveStatus("Kaydetmek icin node server.js kullan");
+        }
+    }
+
+    async loadSelectedMap() {
+        this.selectedMapFile = this.mapSelect.value || DEFAULT_MAP_FILE;
+
+        try {
+            const response = await fetch(`./maps/${encodeURIComponent(this.selectedMapFile)}`, {
+                cache: "no-store"
+            });
+            if (!response.ok) {
+                throw new Error("Map load request failed");
+            }
+
+            const mapData = await response.json();
+            if (!Array.isArray(mapData.tiles)) return;
+
+            this.map.importPaintedTiles(
+                mapData.tiles,
+                (tilesetName) => this.tilesetsByName.get(tilesetName)
+            );
+            this.setSaveStatus(`${this.selectedMapFile} yuklendi`);
+        } catch (error) {
+            this.setSaveStatus("Harita yuklenemedi");
+        }
+    }
+
+    setSaveStatus(message) {
+        this.saveStatus.textContent = message;
     }
 
     getCanvasCellFromEvent(e) {

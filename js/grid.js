@@ -51,12 +51,35 @@ export class Grid {
         this.setCell(col, row, { ...cellData, ...data });
     }
 
+    //Bu fonksyion paintedTiles mapine tile bilgisini kaydediyor
     paintTile(col, row, tileset, tileIndex) {
         this.paintedTiles.set(this.cellKey(col, row), { col, row, tileset, tileIndex });
     }
 
     clearTile(col, row) {
         this.paintedTiles.delete(this.cellKey(col, row));
+    }
+
+    //JSON dosyasina yazmak icin map imizi parcaliyoruz
+    exportPaintedTiles() {
+        return Array.from(this.paintedTiles.values()).map((tile) => ({
+            col: tile.col,
+            row: tile.row,
+            tileset: tile.tileset.name,
+            tileIndex: tile.tileIndex
+        }));
+    }
+
+    //Export edilmis tile listesini paintTiles icine yukleme islemini yapar
+    importPaintedTiles(tiles, getTilesetByName) {
+        this.paintedTiles.clear();
+
+        for (const tile of tiles) {
+            const tileset = getTilesetByName(tile.tileset);
+            if (!tileset) continue;
+
+            this.paintTile(tile.col, tile.row, tileset, tile.tileIndex);
+        }
     }
 
 
@@ -145,7 +168,7 @@ export class Grid {
 
     drawPaintedTiles(ctx, startCol, startRow, endCol, endRow) {
         ctx.imageSmoothingEnabled = false;
-
+        //Gorunmeyen tile lari cizme ve atla
         for (const tile of this.paintedTiles.values()) {
             if (
                 tile.col < startCol ||

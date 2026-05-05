@@ -116,6 +116,48 @@
                 padding: 14px;
             }
 
+            .map-actions {
+                padding: 14px;
+                border-top: 1px solid #2c3a34;
+            }
+
+            .map-select {
+                width: 100%;
+                height: 34px;
+                margin-bottom: 8px;
+                border: 1px solid #466052;
+                border-radius: 5px;
+                background: #111714;
+                color: #dce7df;
+            }
+
+            .map-action-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+
+            .map-button {
+                height: 34px;
+                border: 1px solid #466052;
+                border-radius: 5px;
+                background: #111714;
+                color: #dce7df;
+                cursor: pointer;
+            }
+
+            .map-button:hover {
+                border-color: #7bd38f;
+                background: #20362b;
+            }
+
+            .save-status {
+                min-height: 16px;
+                margin-top: 8px;
+                color: #aebbb3;
+                font-size: 12px;
+            }
+
             .tile-tools {
                 display: flex;
                 gap: 8px;
@@ -191,6 +233,14 @@
                 <button id="modeToggle" class="mode-toggle" type="button">Normal Mode</button>
             </div>
             <div id="tilePalette" class="tile-palette"></div>
+            <div class="map-actions">
+                <select id="mapSelect" class="map-select" aria-label="Harita sec"></select>
+                <div class="map-action-row">
+                    <button id="loadMapButton" class="map-button" type="button">Yukle</button>
+                    <button id="saveMapButton" class="map-button" type="button">Kaydet</button>
+                </div>
+                <div id="saveStatus" class="save-status"></div>
+            </div>
         </aside>
         <div class="stage">
             <canvas id="canvas" width="1080" height="720"></canvas>
