@@ -18,6 +18,7 @@ export class Entity {
         this.showAura = false;
         this.dijkstraInfo = null;
         this.dirty = true;
+        this.party = "none";
 
         this.health = 100;
         this.attackDamage = 20;
@@ -38,6 +39,7 @@ export class Entity {
     }
 
     async takePathTo(cellSize, targetCell) {
+        if (!this.isCellInReach(targetCell)) return false;
         const path = reconstructPath(targetCell, this.dijkstraInfo);
         this.moving = true;
         for (let i = 1; i < path.length; i++) {

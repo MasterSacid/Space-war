@@ -19,7 +19,23 @@
             </div>
             <div id="dialogPane"></div>
             </div>
-        </div>
-    <script src="./js/index.js" type="module"></script>
+    <body>
+        <aside id="tilePanel" class="tile-panel" aria-label="Tileset panel">
+            <button id="tilePanelToggle" class="tile-panel-toggle" type="button" title="Paneli kapat">&lt;</button>
+            <div class="tile-panel-header">
+                <div class="tile-panel-title">Tileset</div>
+                <button id="modeToggle" class="mode-toggle" type="button">Normal Mode</button>
+            </div>
+            <div id="tilePalette" class="tile-palette"></div>
+            <div class="map-actions">
+                <select id="mapSelect" class="map-select" aria-label="Harita sec"></select>
+                <div class="map-action-row">
+                    <button id="loadMapButton" class="map-button" type="button">Yukle</button>
+                    <button id="saveMapButton" class="map-button" type="button">Kaydet</button>
+                </div>
+                <div id="saveStatus" class="save-status"></div>
+            </div>
+        </aside>
+        <script src="./js/index.js" type="module"></script>
     </body>
 </html>

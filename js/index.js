@@ -2,8 +2,9 @@ import { MainMenu, SpaceScene, StatusPane, TerminalPane, dialogPane } from "./ui
 import { Viewport } from "./viewport.js";
 import { Grid } from "./grid.js";
 import { Bot, Combat } from "./combat.js";
-import { Coordinate } from "./utils.js";
+import { Coordinate, screenToCell } from "./utils.js";
 import { Entity, Player } from "./entity.js";
+import { Graphics } from "./graphics.js";
 
 const entity = new Entity(new Coordinate(-96, 32), "Player");
 const wallofentities = Array.from({ length: 5 }, (_, i) => {
@@ -26,9 +27,12 @@ class App {
         this.terminalPane = new TerminalPane(canvas);
         this.dialogPane = new dialogPane(canvas);
         this.map = new Grid(64, this.player);
+
         this.player.entity.reachRadius = 5;
         this.player.entity.lerpDuration = 0.25;
+        this.graphics = new Graphics(this.canvas, this.player, this.map);
 
+        // Animation timer
         this.lastTime = 0;
 
 
@@ -44,16 +48,35 @@ class App {
         this.mainMenu.playBtn.addEventListener("click", () => {
             this.mainMenu.off();
             this.turnOnAllOverlays();
+            this.spaceScene.smallMode = true;
 
             this.story();
         });
 
         this.canvas.addEventListener('mousemove', (e) => {
-            const pos = this.viewport.screenToWorld(e.clientX, e.clientY);
-            this.map.findHoveredCell(pos.x, pos.y);
+            this.map.hoveredCell = screenToCell(this.map, this.viewport, e.clientX, e.clientY);
+
+            if (this.graphics.debugMode && this.graphics.isPainting) {
+                if (e.buttons & 1) {
+                    this.graphics.applyBrushToCell(this.map.hoveredCell);
+                } else {
+                    this.graphics.stopPainting();
+                }
+            }
         });
 
-        this.canvas.addEventListener("mousedown", async () => {
+        this.canvas.addEventListener("mousedown", async (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+
+            const targetCell = screenToCell(this.map, this.viewport, e.clientX, e.clientY);
+            this.map.hoveredCell = targetCell;
+
+            if (this.graphics.debugMode) {
+                this.graphics.startPainting(targetCell);
+                return;
+            }
+
             this.player.entity.showAura = false;
             if (this.player.actionResolve != null) {
                 const success = await this.player.entity.takePathTo(this.map.cellSize, this.map.hoveredCell);
@@ -63,6 +86,12 @@ class App {
                     this.player.actionResolve();
                     this.player.actionResolve = null;
                 }
+            }
+        });
+
+        window.addEventListener("mouseup", (e) => {
+            if (e.button === 0) {
+                this.graphics.stopPainting();
             }
         });
 

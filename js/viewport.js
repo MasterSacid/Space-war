@@ -11,9 +11,12 @@ export class Viewport {
 
     screenToWorld(screenX, screenY) {
         const bound = this.canvas.getBoundingClientRect();
+        const canvasX = (screenX - bound.left) * (this.canvas.width / bound.width);
+        const canvasY = (screenY - bound.top) * (this.canvas.height / bound.height);
+
         return {
-            x: screenX + this.coordinate.x - (bound.left + this.center.x),
-            y: screenY + this.coordinate.y - (bound.top + this.center.y)
+            x: canvasX + this.coordinate.x - this.center.x,
+            y: canvasY + this.coordinate.y - this.center.y
         }
     }
 
