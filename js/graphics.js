@@ -1,4 +1,4 @@
-import { Tileset, TilePalette } from "./tileset.js";
+import { TilePalette, Tileset } from "./tileset.js";
 import { cellToKey } from "./utils.js";
 
 export class Graphics {
@@ -120,6 +120,7 @@ export class Graphics {
                 }
             }
         } catch (error) {
+            console.warn("Couldn't connect to NodeJS backend for map lists.");
         }
 
         try {
@@ -131,6 +132,7 @@ export class Graphics {
                 }
             }
         } catch (error) {
+            console.warn("Couldn't open the file for map lists.");
         }
 
         return [{ name: "Map 1", file: this.defaultMapFile }];

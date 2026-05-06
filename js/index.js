@@ -1,8 +1,8 @@
 import { Entity, Player } from "./entity.js";
+import { Graphics } from "./graphics.js";
+import { Grid } from "./grid.js";
 import { Coordinate, screenToCell } from "./utils.js";
 import { Viewport } from "./viewport.js";
-import { Grid } from "./grid.js";
-import { Graphics } from "./graphics.js";
 
 const entity = new Entity(new Coordinate(-96, 32), "Player");
 const wallofentities = Array.from({ length: 7 }, (_, i) => new Entity(new Coordinate(224, 224 - i * 64), "Wall"));
