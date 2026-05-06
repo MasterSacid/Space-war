@@ -51,11 +51,11 @@ export class Grid {
 
     //Bu fonksyion paintedTiles mapine tile bilgisini kaydediyor
     paintTile(col, row, tileset, tileIndex) {
-        this.paintedTiles.set(cellToKey(col, row), { col, row, tileset, tileIndex });
+        this.paintedTiles.set(cellToKey({ col: col, row: row }), { col, row, tileset, tileIndex });
     }
 
     clearTile(col, row) {
-        this.paintedTiles.delete(cellToKey(col, row));
+        this.paintedTiles.delete(cellToKey({ col: col, row: row }));
     }
 
     //JSON dosyasina yazmak icin map imizi parcaliyoruz
