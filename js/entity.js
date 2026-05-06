@@ -39,7 +39,6 @@ export class Entity {
 
     async takePathTo(cellSize, targetCell) {
         const path = reconstructPath(targetCell, this.dijkstraInfo);
-        console.log(cellSize);
         this.moving = true;
         for (let i = 1; i < path.length; i++) {
             await new Promise((resolve) => this.moveToCell(cellSize, path[i], resolve));
@@ -75,6 +74,7 @@ export class Entity {
         if (!this.moving) {
             const cell = { col: Math.floor(this.center.x / 64), row: Math.floor(this.center.y / 64) }
             if (!(this.cell.col == cell.col && this.cell.row == cell.row)) {
+                this.previousCell = this.cell;
                 this.cell = cell;
                 this.dirty = true;
             }

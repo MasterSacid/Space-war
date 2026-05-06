@@ -1,12 +1,13 @@
-import { keyToCell } from "./utils.js";
+import { dijkstra, keyToCell } from "./utils.js";
 
 export class Combat {
-    constructor(player, entities) {
+    constructor(player, entities, grid) {
         this.player = player;
         this.parties = new Map();
         this.roundCounter = 0;
         this.roundActive = false;
         this.combatActive = true;
+        this.map = grid;
         for (const entity of entities) {
             let list = this.parties.get(entity.party);
             if (!list) {
@@ -31,7 +32,7 @@ export class Combat {
         for (const [partyKey, members] of this.parties) {
             for (const entity of members) {
                 if (entity?.status == "incapacitated" || entity?.status == "dead") continue;
-
+                entity.dijkstraInfo = dijkstra(entity.cell, entity.reachRadius, (cell) => this.map.getAdjacentCells(cell));
                 if (this.player.entity === entity) {
                     await new Promise((resolve) => this.player.actionResolve = resolve);
                 } else {
@@ -72,8 +73,22 @@ export class Bot {
                     const keysArray = Array.from(entity.dijkstraInfo.keys());
                     const targetCellKey = keysArray[Math.floor(Math.random() * keysArray.length)];
                     const targetCell = keyToCell(targetCellKey);
+
+                    const startCol = entity.cell.col;
+                    const startRow = entity.cell.row;
+
+                    const isMovingToNewCell = (startCol !== targetCell.col || startRow !== targetCell.row);
+
+                    if (isMovingToNewCell) {
+                        this.grid.appendCell(targetCell.col, targetCell.row, { occupied: true, entity: entity });
+                    }
+
                     await entity.takePathTo(this.grid.cellSize, targetCell);
-                    this.grid.appendCell(entity.cell.col, entity.cell.row, { occupied: false, entity: null });
+
+                    if (isMovingToNewCell) {
+                        this.grid.appendCell(startCol, startRow, { occupied: false, entity: null });
+                    }
+
                     entity.actionResolve();
                     entity.actionResolve = null;
                 }

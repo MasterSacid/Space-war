@@ -58,6 +58,7 @@ class App {
             if (this.player.actionResolve != null) {
                 const success = await this.player.entity.takePathTo(this.map.cellSize, this.map.hoveredCell);
                 if (success) {
+                    this.map.appendCell(this.map.hoveredCell.col, this.map.hoveredCell.row, { occupied: true, entity: entity });
                     this.map.appendCell(this.player.entity.cell.col, this.player.entity.cell.row, { occupied: false, entity: null });
                     this.player.actionResolve();
                     this.player.actionResolve = null;
@@ -68,7 +69,7 @@ class App {
         this.map.trackedEntities = [entity, ...wallofentities];
         //this.canvas.style.cursor = 'none';
 
-        this.combat = new Combat(this.player, [entity, ...wallofentities]);
+        this.combat = new Combat(this.player, [entity, ...wallofentities], this.map);
         this.bot = new Bot(this.combat, "walls", this.map);
 
         this.mainMenu.on();

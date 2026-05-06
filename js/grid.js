@@ -149,12 +149,11 @@ export class Grid {
         for (const entity of this.trackedEntities) {
             if (entity.dirty) {
                 entity.dirty = false;
+                if (entity.previousCell) {
+                    this.appendCell(entity.previousCell.col, entity.previousCell.row, { occupied: false, entity: null });
+                }
                 this.appendCell(entity.cell.col, entity.cell.row, { occupied: true, entity: entity });
             }
-        }
-        // Calculate paths after all the occupied cells are updated.
-        for (const entity of this.trackedEntities) {
-            entity.dijkstraInfo = dijkstra(entity.cell, entity.reachRadius, (cell) => this.getAdjacentCells(cell));
         }
     }
 }
