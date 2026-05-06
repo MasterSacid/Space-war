@@ -97,7 +97,7 @@ export function lerp(p0, p1, t) {
     return p0 + (p1 - p0) * t;
 }
 
-const cellToKey = (cell) => `${cell.col},${cell.row}`;
+export const cellToKey = (cell) => `${cell.col},${cell.row}`;
 
 function reconstructPath(goal, cameFrom) {
     const path = [goal];
@@ -155,4 +155,11 @@ export function astar(start, goal, getNeighbours, h = manhattan) {
     }
 
     return null;
+}
+
+
+
+export function screenToCell(grid, viewport, x, y) {
+    const pos = viewport.screenToWorld(x, y);
+    return grid.worldToCell(pos.x, pos.y);
 }

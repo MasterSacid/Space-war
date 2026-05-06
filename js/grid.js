@@ -1,3 +1,5 @@
+import { cellToKey } from "./utils.js";
+
 export class Grid {
     constructor(cellSize = 64, player) {
         this.cellSize = cellSize;
@@ -6,10 +8,6 @@ export class Grid {
         this.hoveredCell = null; // { col, row }
         this.player = player;
         this.trackedEntities = [];
-    }
-
-    cellKey(col, row) {
-        return `${col},${row}`;
     }
 
     // Dünya koordinatından hücre indeksine
@@ -29,7 +27,7 @@ export class Grid {
     }
 
     getCell(col, row) {
-        return this.cells[this.cellKey(col, row)] ?? null;
+        return this.cells[cellToKey({ col: col, row: row })] ?? null;
     }
 
     getAdjacentCells(cell) {
@@ -43,7 +41,7 @@ export class Grid {
 
 
     setCell(col, row, data) {
-        this.cells[this.cellKey(col, row)] = data;
+        this.cells[cellToKey({ col: col, row: row })] = data;
     }
 
     appendCell(col, row, data) {
@@ -53,11 +51,11 @@ export class Grid {
 
     //Bu fonksyion paintedTiles mapine tile bilgisini kaydediyor
     paintTile(col, row, tileset, tileIndex) {
-        this.paintedTiles.set(this.cellKey(col, row), { col, row, tileset, tileIndex });
+        this.paintedTiles.set(cellToKey(col, row), { col, row, tileset, tileIndex });
     }
 
     clearTile(col, row) {
-        this.paintedTiles.delete(this.cellKey(col, row));
+        this.paintedTiles.delete(cellToKey(col, row));
     }
 
     //JSON dosyasina yazmak icin map imizi parcaliyoruz
@@ -232,6 +230,7 @@ export class Grid {
                     }
 
                     this.appendCell(centerCell.col, centerCell.row, { occupied: true, entity: entity });
+
                     entity.cellsInReach.length = 0
                     for (const cell of cells) {
                         const cellData = this.getCell(cell.col, cell.row);
