@@ -9,6 +9,14 @@ export class Viewport {
         this.zoom = 1;
     }
 
+    screenToWorld(screenX, screenY) {
+        const bound = this.canvas.getBoundingClientRect();
+        return {
+            x: screenX + this.coordinate.x - (bound.left + this.center.x),
+            y: screenY + this.coordinate.y - (bound.top + this.center.y)
+        }
+    }
+
     reset() {
         this.ctx.restore();
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -20,5 +28,4 @@ export class Viewport {
         this.ctx.scale(this.zoom, this.zoom);
         this.ctx.translate(-this.coordinate.x, -this.coordinate.y); // Son olarak istenilen kooordinata gelir.
     }
-
 }
