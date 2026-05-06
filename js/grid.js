@@ -127,7 +127,11 @@ export class Grid {
             ctx.stroke();
         }
 
-        this.drawEntityAura(ctx, this.player.entity);
+        for (const entity of this.trackedEntities) {
+            if (entity.showAura) {
+                this.drawEntityAura(ctx, entity);
+            }
+        }
 
         ctx.restore();
     }
@@ -146,9 +150,9 @@ export class Grid {
             if (entity.dirty) {
                 entity.dirty = false;
                 this.appendCell(entity.cell.col, entity.cell.row, { occupied: true, entity: entity });
-                console.log(this.getCell(entity.cell.col, entity.cell.row));
             }
         }
+        // Calculate paths after all the occupied cells are updated.
         for (const entity of this.trackedEntities) {
             entity.dijkstraInfo = dijkstra(entity.cell, entity.reachRadius, (cell) => this.getAdjacentCells(cell));
         }

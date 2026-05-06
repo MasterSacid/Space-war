@@ -1,10 +1,15 @@
 import { Entity, Player } from "./entity.js";
-import { Coordinate } from "./utils.js";
+import { Coordinate, keyToCell } from "./utils.js";
 import { Viewport } from "./viewport.js";
 import { Grid } from "./grid.js";
+import { Bot, Combat } from "./combat.js";
 
 const entity = new Entity(new Coordinate(-96, 32), "Player");
-const wallofentities = Array.from({ length: 5 }, (_, i) => new Entity(new Coordinate(224, 160 - i * 64), "Wall"));
+const wallofentities = Array.from({ length: 5 }, (_, i) => {
+    const wall = new Entity(new Coordinate(224, 160 - i * 64), "Wall " + (i + 1));
+    wall.party = "walls";
+    return wall;
+});
 
 class App {
     start() {
@@ -24,15 +29,23 @@ class App {
             this.map.findHoveredCell(pos.x, pos.y);
         });
 
-        this.canvas.addEventListener("mousedown", () => {
-            const success = this.player.entity.takePathTo(this.map.cellSize, this.map.hoveredCell);
-            if (success) {
-                this.map.appendCell(this.player.entity.cell.col, this.player.entity.cell.row, { occupied: false, entity: null });
+        this.canvas.addEventListener("mousedown", async () => {
+            this.player.entity.showAura = false;
+            if (this.player.actionResolve != null) {
+                const success = await this.player.entity.takePathTo(this.map.cellSize, this.map.hoveredCell);
+                if (success) {
+                    this.map.appendCell(this.player.entity.cell.col, this.player.entity.cell.row, { occupied: false, entity: null });
+                    this.player.actionResolve();
+                    this.player.actionResolve = null;
+                }
             }
         });
 
         this.map.trackedEntities = [entity, ...wallofentities];
         //this.canvas.style.cursor = 'none';
+
+        this.combat = new Combat(this.player, [entity, ...wallofentities]);
+        this.bot = new Bot(this.combat, "walls", this.map);
     }
 
     update(currentTime) {
@@ -40,13 +53,17 @@ class App {
         const deltaTime = (currentTime - this.lastTime) / 1000;
         this.lastTime = currentTime;
 
-        wallofentities.forEach((entity) => entity.update());
+        wallofentities.forEach((entity) => entity.update(deltaTime));
         entity.update(deltaTime);
+
         this.player.update(deltaTime);
 
         this.map.update();
 
         this.viewport.reset();
+
+        this.combat.update();
+        this.bot.update();
 
         this.map.draw(this.ctx, this.viewport);
 
@@ -54,10 +71,7 @@ class App {
             entity.draw(this.ctx);
         });
 
-
         entity.draw(this.ctx);
-
-
 
         // keep the animation going by requesting another animation frame
         requestAnimationFrame((time) => this.update(time));

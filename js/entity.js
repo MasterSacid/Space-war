@@ -15,10 +15,13 @@ export class Entity {
         this.lerping = false;
         this.lerpingProgress = 0;
         this.lerpDuration = 1 / this.reachRadius;
-        this.showAura = true;
+        this.showAura = false;
         this.dijkstraInfo = null;
         this.dirty = true;
 
+        this.health = 100;
+        this.attackDamage = 20;
+        this.actionResolve = null;
         this.update(0);
     }
 
@@ -36,12 +39,11 @@ export class Entity {
 
     async takePathTo(cellSize, targetCell) {
         const path = reconstructPath(targetCell, this.dijkstraInfo);
-        this.showAura = false;
+        console.log(cellSize);
         this.moving = true;
         for (let i = 1; i < path.length; i++) {
             await new Promise((resolve) => this.moveToCell(cellSize, path[i], resolve));
         }
-        this.showAura = true;
         this.moving = false;
         return true;
     }
@@ -86,6 +88,7 @@ export class Player {
         this.entity = entity;
         this.keys = {};
         this.enableKeyboardMovement = false;
+        this.actionResolve = null;
 
         this.#addEventListeners();
     }
@@ -96,12 +99,13 @@ export class Player {
     }
 
     update(dt) {
-        if (!this.keys) return;
-        if (this.enableKeyboardMovement) {
-            if (this.keys['w']) this.entity.center.y -= 100 * dt;
-            if (this.keys['a']) this.entity.center.x -= 100 * dt;
-            if (this.keys['s']) this.entity.center.y += 100 * dt;
-            if (this.keys['d']) this.entity.center.x += 100 * dt;
+        if (this.actionResolve != null && !this.entity.moving) {
+            this.entity.showAura = true;
+        } else {
+            this.entity.showAura = false;
         }
+        // Key checks
+        if (!this.keys) return;
+        if (this.keys['a']) this.mode = "attack";
     }
 }
