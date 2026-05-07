@@ -1,4 +1,5 @@
 import { Coordinate, lerp, cellToKey, reconstructPath } from "./utils.js";
+import {eventSystem} from "./eventSystem.js";
 
 export class Entity {
     constructor(center = new Coordinate(0, 0), name = "Empty") {
@@ -56,6 +57,11 @@ export class Entity {
         this.lerpingProgress = 0;
         this.lerping = true;
         this.resolve = resolve;
+        eventSystem.publish("entity:sound",{
+            eventAction : "move",
+            entityName: this.name
+        }
+        );
     }
 
     update(dt) {

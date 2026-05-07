@@ -204,3 +204,6 @@ export function screenToCell(grid, viewport, x, y) {
     const pos = viewport.screenToWorld(x, y);
     return grid.worldToCell(pos.x, pos.y);
 }
+
+
+

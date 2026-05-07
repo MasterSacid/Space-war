@@ -5,6 +5,7 @@ import { Bot, Combat } from "./combat.js";
 import { Coordinate, screenToCell } from "./utils.js";
 import { Entity, Player } from "./entity.js";
 import { Graphics } from "./graphics.js";
+import {Sound} from "./sound.js";
 
 const entity = new Entity(new Coordinate(-96, 32), "Player");
 const wallofentities = Array.from({ length: 5 }, (_, i) => {
@@ -27,6 +28,7 @@ class App {
         this.terminalPane = new TerminalPane(canvas);
         this.dialogPane = new dialogPane(canvas);
         this.map = new Grid(64, this.player);
+        this.sound = new Sound();
 
         this.player.entity.reachRadius = 5;
         this.player.entity.lerpDuration = 0.25;
