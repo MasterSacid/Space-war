@@ -1,24 +1,35 @@
-import {eventSystem} from "./eventSystem.js";
+import { eventSystem } from "./eventSystem.js";
 
 export class Sound {
     constructor() {
         this.subscriptions = [];
-        eventSystem.subscribe("entity:sound",this.chooseWhichSoundToPlay );
-    }
 
+        this.sounds = {
+            move: new Audio("./sounds/low.wav"),
+        };
+
+        eventSystem.subscribe("entity:sound", this.chooseWhichSoundToPlay);
+
+        this.subscriptions.push(["entity:sound", this.chooseWhichSoundToPlay]);
+    }
 
     chooseWhichSoundToPlay = (data) => {
         switch (data.eventAction) {
             case "move":
-                console.log(`I am ${data.entityName} and I am moving! Play move sound`);
+                this.playSound("move");
                 break;
-                default:
-                    break;
+            default:
+                break;
         }
     };
 
-
-
+    playSound(name) {
+        const sound = this.sounds[name];
+        if (!sound) return;
+        const instance = sound.cloneNode();
+        instance.volume = sound.volume;
+        instance.play().catch(() => {});
+    }
 
     destroy() {
         for (const [eventName, handler] of this.subscriptions) {
@@ -26,6 +37,4 @@ export class Sound {
         }
         this.subscriptions = [];
     }
-
 }
-
