@@ -2,7 +2,7 @@ import { MainMenu, SpaceScene, StatusPane, TerminalPane, dialogPane } from "./ui
 import { Viewport } from "./viewport.js";
 import { Grid } from "./grid.js";
 import { Bot, Combat } from "./combat.js";
-import { Coordinate, screenToCell } from "./utils.js";
+import { Coordinate, screenToCell, sleep } from "./utils.js";
 import { Entity, Player } from "./entity.js";
 import { Graphics } from "./graphics.js";
 
@@ -27,20 +27,21 @@ class App {
         this.terminalPane = new TerminalPane(canvas);
         this.dialogPane = new dialogPane(canvas);
         this.map = new Grid(64, this.player);
-
-        this.player.entity.reachRadius = 5;
-        this.player.entity.lerpDuration = 0.25;
         this.graphics = new Graphics(this.canvas, this.player, this.map);
+        this.bot = new Bot(wallofentities, this.map);
+        this.combat = new Combat(this.player, [entity, ...wallofentities], this.map, this.bot);
 
         // Animation timer
         this.lastTime = 0;
 
 
+        //Writing text to terminal pane with a cb
         this.addText = (string, letterPerSec) => new Promise((resolve) => {
             this.terminalPane.addText(string, letterPerSec, resolve);
         });
 
 
+        //Showing dialog on the spacescene with a cb
         this.addDialog = (title, description, select = "select", onSelect) => new Promise((resolve) => {
             this.dialogPane.addDialog(title, description, select, resolve, onSelect);
         });
@@ -53,6 +54,7 @@ class App {
             this.story();
         });
 
+        // Handles mousemove
         this.canvas.addEventListener('mousemove', (e) => {
             this.map.hoveredCell = screenToCell(this.map, this.viewport, e.clientX, e.clientY);
 
@@ -65,7 +67,8 @@ class App {
             }
         });
 
-        this.canvas.addEventListener("mousedown", async (e) => {
+        // Handles mouse downs
+        this.canvas.addEventListener("mousedown", (e) => {
             if (e.button !== 0) return;
             e.preventDefault();
 
@@ -77,18 +80,15 @@ class App {
                 return;
             }
 
-            this.player.entity.showAura = false;
-            if (this.player.actionResolve != null) {
-                const success = await this.player.entity.takePathTo(this.map.cellSize, this.map.hoveredCell);
-                if (success) {
-                    this.map.appendCell(this.map.hoveredCell.col, this.map.hoveredCell.row, { occupied: true, entity: entity });
-                    this.map.appendCell(this.player.entity.cell.col, this.player.entity.cell.row, { occupied: false, entity: null });
-                    this.player.actionResolve();
-                    this.player.actionResolve = null;
+            if (this.player.entity.hasTurn) {
+                const started = this.player.entity.startTraversing(this.map.hoveredCell, this.map.cellSize, 0);
+                if (started) {
+                    this.player.entity.showAura = false;
                 }
             }
         });
 
+        //Mouse up handler.
         window.addEventListener("mouseup", (e) => {
             if (e.button === 0) {
                 this.graphics.stopPainting();
@@ -98,11 +98,8 @@ class App {
         this.map.trackedEntities = [entity, ...wallofentities];
         //this.canvas.style.cursor = 'none';
 
-        this.combat = new Combat(this.player, [entity, ...wallofentities], this.map);
-        this.bot = new Bot(this.combat, "walls", this.map);
-
-        this.mainMenu.on();
-        this.spaceScene.visible = true;
+        //this.mainMenu.on();
+        this.spaceScene.visible = false;
     }
 
     async story() {
@@ -138,7 +135,7 @@ class App {
 
         this.combat.update();
 
-        this.bot.update();
+        //this.bot.update();
 
         // Viewport reset
         this.viewport.reset();

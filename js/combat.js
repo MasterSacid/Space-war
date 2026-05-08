@@ -1,13 +1,18 @@
-import { dijkstra, keyToCell } from "./utils.js";
+import { dijkstra, keyToCell, manhattan, Heap } from "./utils.js";
 
 export class Combat {
-    constructor(player, entities, grid) {
+    constructor(player, entities, grid, bot) {
         this.player = player;
+        this.entities = entities;
+        this.map = grid;
+        this.bot = bot;
+
         this.parties = new Map();
         this.roundCounter = 0;
         this.roundActive = false;
         this.combatActive = true;
-        this.map = grid;
+        this.activeEntity = null;
+
         for (const entity of entities) {
             let list = this.parties.get(entity.party);
             if (!list) {
@@ -16,84 +21,95 @@ export class Combat {
             }
             list.push(entity);
         }
+        this.startRound();
     }
 
-    roundStart() {
+    atRoundStart() {
         this.roundCounter++;
         this.roundActive = true;
+
+        for (const entity of this.entities) {
+            entity.actionPoints = entity.maxActionPoints;
+        }
     }
 
-    roundEnd() {
+    atRoundEnd() {
         this.roundActive = false;
     }
 
-    round = async () => {
-        this.roundStart();
+    startRound() {
+        this.atRoundStart();
+        this.turnQueue = [];
+
         for (const [partyKey, members] of this.parties) {
             for (const entity of members) {
-                if (entity?.status == "incapacitated" || entity?.status == "dead") continue;
-                entity.dijkstraInfo = dijkstra(entity.cell, entity.reachRadius, (cell) => this.map.getAdjacentCells(cell));
-                if (this.player.entity === entity) {
-                    await new Promise((resolve) => this.player.actionResolve = resolve);
-                } else {
-                    await new Promise((resolve) => entity.actionResolve = resolve);
-                }
-
-                if (this.parties.size <= 1) {
-                    this.combatActive = false;
-                    return;
+                if (entity?.status !== "incapacitated" && entity?.status !== "dead") {
+                    this.turnQueue.push({ entity, partyKey });
                 }
             }
         }
-        this.roundEnd();
+
+        this.processNextTurn();
     }
 
-    update = async () => {
-        if (this.combatActive) {
-            while (this.parties.size > 1 && !this.roundActive) {
-                await this.round();
-            }
+    processNextTurn() {
+        if (this.parties.size <= 1) {
+            this.combatActive = false;
+            return;
+        }
+
+        if (this.turnQueue.length === 0) {
+            this.atRoundEnd();
+            this.startRound();
+            return;
+        }
+
+        const { entity } = this.turnQueue.shift();
+        this.activeEntity = entity;
+
+        if (entity?.status === "incapacitated" || entity?.status === "dead") {
+            this.processNextTurn();
+            return;
+        }
+
+        console.log('turn of ' + entity.name);
+        entity.dijkstraInfo = dijkstra(entity.cell, entity.actionPoints, (cell) => this.map.getAdjacentCells(cell));
+
+        entity.hasTurn = true;
+        if (entity === this.player.entity) {
+            this.player.entity.showAura = true;
+        } else {
+            this.bot.handleEntity(entity);
+        }
+    }
+
+    filterEntitiesBy(comparator) {
+        const heap = new Heap(comparator);
+        for (const entity of this.entities) {
+            heap.insert(entity);
+        }
+        return heap;
+    }
+
+    update() {
+        if (this.activeEntity.hasTurn == false) {
+            this.processNextTurn();
         }
     }
 }
 
 export class Bot {
-    constructor(combat, partyKey, grid) {
-        this.combat = combat;
-        this.party = combat.parties.get(partyKey);
+    constructor(entities, grid) {
+        this.entities = entities;
         this.grid = grid;
-        this.deciding = false;
     }
 
-    async update(dt) {
-        if (!this.deciding) {
-            this.deciding = true;
-            for (const entity of this.party) {
-                if (entity.actionResolve != null) {
-                    const keysArray = Array.from(entity.dijkstraInfo.keys());
-                    const targetCellKey = keysArray[Math.floor(Math.random() * keysArray.length)];
-                    const targetCell = keyToCell(targetCellKey);
-
-                    const startCol = entity.cell.col;
-                    const startRow = entity.cell.row;
-
-                    const isMovingToNewCell = (startCol !== targetCell.col || startRow !== targetCell.row);
-
-                    if (isMovingToNewCell) {
-                        this.grid.appendCell(targetCell.col, targetCell.row, { occupied: true, entity: entity });
-                    }
-
-                    await entity.takePathTo(this.grid.cellSize, targetCell);
-
-                    if (isMovingToNewCell) {
-                        this.grid.appendCell(startCol, startRow, { occupied: false, entity: null });
-                    }
-
-                    entity.actionResolve();
-                    entity.actionResolve = null;
-                }
-            }
-            this.deciding = false;
-        }
+    handleEntity(entity) {
+        const keysArray = Array.from(entity.dijkstraInfo.keys());
+        const targetCellKey = keysArray[Math.floor(Math.random() * keysArray.length)];
+        const targetCell = keyToCell(targetCellKey);
+        entity.startTraversing(targetCell, this.grid.cellSize, 0);
     }
+
+    update() { }
 }
