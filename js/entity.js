@@ -49,6 +49,7 @@ export class Entity {
     }
 
     startTraversing(targetCell, cellSize, actionPointLimit) {
+        if (this.moving) return;
         if (!this.isCellInReach(targetCell)) return;
         this.moving = true;
         // BUG: IT TOOK ME A LOT OF TIME TO FIGURE THIS SO DON'T FORGET IT NEXT TIME.
@@ -81,11 +82,10 @@ export class Entity {
 
         if (chance < 0.5 + healthRatio) {
             //Attack
-            if (this.isCellInReach(closest.cell)) {
-
-            }
             const path = astar(this.cell, closest.cell, map.getAdjacentCells());
-            this.takePathTo(map.cellSize, closest.cell);
+            this.activePath = path;
+            this.startTraversing(closest.cell, map.cellSize, this.actionPoints);
+            console.log(closest.cell);
         } else {
             //Run away
         }
@@ -112,13 +112,18 @@ export class Entity {
                 this.moveToCell(nextCell);
             } else if (this.moving) {
                 this.moving = false;
+                this.actionPoints = 0;
+                this.actionPoints -= Math.ceil(this.activePath[this.pathIndex - 1].totalCost / this.agility);
                 this.activePath = null;
                 this.hasTurn = false;
             }
         } else if (this.moving) {
             this.moving = false;
+            this.actionPoints -= Math.ceil(this.activePath[this.pathIndex - 1].totalCost / this.agility);
             this.activePath = null;
-            this.hasTurn = false;
+            if (this.actionPoints <= 0) {
+                this.hasTurn = false;
+            }
         }
 
         if (!this.moving) {

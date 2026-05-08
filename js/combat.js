@@ -72,14 +72,18 @@ export class Combat {
             return;
         }
 
-        console.log('turn of ' + entity.name);
-        entity.dijkstraInfo = dijkstra(entity.cell, entity.actionPoints, (cell) => this.map.getAdjacentCells(cell));
+        this.actionLoop(entity);
+    }
+
+    actionLoop(entity) {
+        const range = Math.floor(entity.actionPoints * entity.agility);
+        entity.dijkstraInfo = dijkstra(entity.cell, range, (cell) => this.map.getAdjacentCells(cell));
 
         entity.hasTurn = true;
         if (entity === this.player.entity) {
             this.player.entity.showAura = true;
         } else {
-            this.bot.handleEntity(entity);
+            this.bot.handleEntity(this, entity);
         }
     }
 
@@ -93,7 +97,13 @@ export class Combat {
 
     update() {
         if (this.activeEntity.hasTurn == false) {
+            if (this.activeEntity = this.player.entity) {
+                this.activeEntity.showAura = false;
+            }
+            this.activeEntity = null;
             this.processNextTurn();
+        } else {
+            this.actionLoop(this.activeEntity);
         }
     }
 }
@@ -104,11 +114,8 @@ export class Bot {
         this.grid = grid;
     }
 
-    handleEntity(entity) {
-        const keysArray = Array.from(entity.dijkstraInfo.keys());
-        const targetCellKey = keysArray[Math.floor(Math.random() * keysArray.length)];
-        const targetCell = keyToCell(targetCellKey);
-        entity.startTraversing(targetCell, this.grid.cellSize, 0);
+    handleEntity(combat, entity) {
+        entity.takeAction(combat, this.grid);
     }
 
     update() { }
