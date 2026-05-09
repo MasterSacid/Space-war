@@ -165,6 +165,16 @@ export class Grid {
             }
         }
 
+        //ctx.fillStyle = "rgba(0,0,0,0.5)";
+        //for (let i = -20; i < 20; i++) {
+        //    for (let j = -20; j < 20; j++) {
+        //        if (this.getCell(i, j)?.occupied) {
+        //            ctx.fillRect(i * this.cellSize, j * this.cellSize, this.cellSize, this.cellSize);
+        //        }
+        //    }
+        //}
+
+
         ctx.restore();
     }
 

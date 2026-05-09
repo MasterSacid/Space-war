@@ -1,13 +1,20 @@
-import { Coordinate, lerp, cellToKey, reconstructPath, manhattan, astar } from "./utils.js";
+import { Coordinate, cellToKey, reconstructPath, manhattan, astar } from "./utils.js";
+import { MoveAction } from "./action.js";
 
 export class Entity {
     constructor(center = new Coordinate(0, 0), name = "Empty") {
+        // Actions
+        this.actionQueue = [];
+
         //Position info
         this.center = center;
         this.width = 50;
         this.height = 50;
         this.cell = { col: undefined, row: undefined };
         this.color = "red";
+        this.dirty = true;
+        this.dijkstraInfo = null;
+        this.moving = false;
 
         // Properties
         this.maxActionPoints = 3;
@@ -19,111 +26,95 @@ export class Entity {
         // Combat info
         this.name = name;
         this.party = this.name;
-        this.cellsInReach = [];
-        this.dijkstraInfo = null;
-        this.dirty = true;
-        this.reachRadius = this.maxActionPoints * this.agility;
         this.actionPoints = 0;
         this.health = this.maxHealth;
         this.hasTurn = false;
-
-        // Animation info
         this.showAura = false;
-        this.moving = false;
-        this.lerpStart = new Coordinate(0, 0);
-        this.lerpEnd = new Coordinate(0, 0);
-        this.lerping = false;
-        this.lerpingProgress = 0;
-        this.lerpDuration = 1 / this.reachRadius;
-        this.activePath = null;
-        this.pathIndex = 1;
-        this.cellSize = 0;
-        this.apLimit = 0;
 
         // Initial update
         this.update(0);
+    }
+
+    enqueueAction(action) {
+        this.actionQueue.push(action);
+    }
+
+    isIdle() {
+        return this.actionQueue.length === 0;
     }
 
     isCellInReach(cell) {
         return this.dijkstraInfo.has(cellToKey(cell));
     }
 
-    startTraversing(targetCell, cellSize, actionPointLimit) {
-        if (this.moving) return;
-        if (!this.isCellInReach(targetCell)) return;
-        this.moving = true;
-        // BUG: IT TOOK ME A LOT OF TIME TO FIGURE THIS SO DON'T FORGET IT NEXT TIME.
-        // YOU WERE PASSING targetCell without the Dijkstra information.
+    isCellInRange(cell) {
+        return manhattan(this.cell, cell) <= this.getReachRadius();
+    }
+
+    getReachRadius() {
+        return Math.floor(this.actionPoints * this.agility);
+    }
+
+    getDijkstraPath(targetCell) {
+        if (!this.isCellInReach(targetCell)) return null;
         const targetCellWithInfo = this.dijkstraInfo.get(cellToKey(targetCell));
         targetCellWithInfo.col = targetCell.col;
         targetCellWithInfo.row = targetCell.row;
-        this.activePath = reconstructPath(targetCellWithInfo, this.dijkstraInfo);
-        this.pathIndex = 1;
-        this.cellSize = cellSize;
-        this.apLimit = actionPointLimit;
-        return true;
+        return reconstructPath(targetCellWithInfo, this.dijkstraInfo);
     }
 
-    moveToCell(targetCell) {
-        this.lerpEnd.x = targetCell.col * this.cellSize + this.cellSize / 2;
-        this.lerpEnd.y = targetCell.row * this.cellSize + this.cellSize / 2;
-        this.lerpStart = this.center.clone();
-        this.lerpingProgress = 0;
-        this.lerping = true;
+    tracePath(path, cellSize, apLimit = 0) {
+        const moveAction = new MoveAction(this, path, apLimit, cellSize);
+        this.enqueueAction(moveAction);
     }
 
     takeAction(combat, map) {
         const chance = Math.random();
+
+        const targets = combat.filterEntitiesBy(
+            (a, b) => {
+                return manhattan(this.cell, a.cell) < manhattan(this.cell, b.cell);
+            },
+            (parties) => {
+                const array = [];
+                for (const [party, members] of parties) {
+                    if (party != this.party) {
+                        array.push(members);
+                    }
+                }
+                return array;
+            },
+            (filteredParties) => {
+                return [...filteredParties];
+            }
+        );
+
         const healthRatio = this.health / this.maxHealth / 2;
 
-        const closest = combat.filterEntitiesBy((a, b) => {
-            manhattan(this.cell, a.cell) < manhattan(this.cell, b.cell);
-        }).extractMin();
+        const closest = targets.extractMin();
 
         if (chance < 0.5 + healthRatio) {
             //Attack
-            const path = astar(this.cell, closest.cell, map.getAdjacentCells());
-            this.activePath = path;
-            this.startTraversing(closest.cell, map.cellSize, this.actionPoints);
-            console.log(closest.cell);
+            if (this.isCellInRange(closest.cell)) {
+                console.log('in reach');
+                this.hasTurn = false;
+            } else {
+                map.appendCell(closest.cell.col, closest.cell.row, { occupied: false });
+                const path = astar(this.cell, closest.cell, (cell) => map.getAdjacentCells(cell));
+                map.appendCell(closest.cell.col, closest.cell.row, { occupied: true });
+                this.tracePath(path, map.cellSize, 0);
+            }
         } else {
             //Run away
         }
     }
 
-
     update(dt) {
-        if (this.lerping) {
-            this.lerpingProgress += dt / this.lerpDuration;
-            if (this.lerpingProgress >= 1) {
-                this.lerpingProgress = 1;
-                this.lerping = false;
-                this.pathIndex++;
-            }
-
-            const easeout = 1 - (1 - this.lerpingProgress) * (1 - this.lerpingProgress);
-
-            this.center.x = lerp(this.lerpStart.x, this.lerpEnd.x, easeout);
-            this.center.y = lerp(this.lerpStart.y, this.lerpEnd.y, easeout);
-        } else if (this.activePath && this.pathIndex < this.activePath.length) {
-            let nextCell = this.activePath[this.pathIndex];
-
-            if ((this.actionPoints - nextCell.totalCost) >= this.apLimit) {
-                this.moveToCell(nextCell);
-            } else if (this.moving) {
-                this.moving = false;
-                this.actionPoints = 0;
-                this.actionPoints -= Math.ceil(this.activePath[this.pathIndex - 1].totalCost / this.agility);
-                this.activePath = null;
-                this.hasTurn = false;
-            }
-        } else if (this.moving) {
-            this.moving = false;
-            this.actionPoints -= Math.ceil(this.activePath[this.pathIndex - 1].totalCost / this.agility);
-            this.activePath = null;
-            if (this.actionPoints <= 0) {
-                this.hasTurn = false;
-            }
+        if (this.actionPoints <= 0) this.hasTurn = false;
+        if (!this.isIdle()) {
+            const action = this.actionQueue[0];
+            const done = action.update(dt);
+            if (done) this.actionQueue.shift();
         }
 
         if (!this.moving) {

@@ -125,42 +125,58 @@ export function manhattan(node, goal) {
 }
 
 export function astar(start, goal, getNeighbours, h = manhattan) {
+    const candidates = new Heap((a, b) => a.fScore < b.fScore);
+    const visits = new Map();
+
     start.occupied = start.occupied ?? false;
     start.cost = start.cost ?? 1;
 
-    const candidates = new Heap((a, b) => a.fScore < b.fScore);
-
-    start.fScore = h(start, goal);
     candidates.insert(start);
 
     const startKey = cellToKey(start);
-
-    const visits = new Map();
-    visits.set(startKey, { gScore: 0, previous: null });
+    visits.set(startKey, { fScore: h(start, goal), totalCost: 0, cost: 0, previous: null });
 
     while (candidates.array.length > 0) {
         const current = candidates.extractMin();
 
         if (current.col === goal.col && current.row === goal.row) {
-            return reconstructPath(goal, visits);
+            return reconstructPath(current, visits);
         }
+
+        const currentKey = cellToKey(current);
 
         const neighbours = getNeighbours(current);
         for (const neighbour of neighbours) {
             const neighbourKey = cellToKey(neighbour);
 
-            neighbour.cost = cell.cost ?? 1;
-            neighbour.occupied = cell.occupied ?? false;
+            if (neighbour.occupied) continue;
+            const cellCost = neighbour.cost ?? 1;
 
-            if (neighbour.occupied) neighbour.cost = Infinity;
-            const neighbourCost = neighbour.cost ?? 1;
-            const tentativeGScore = (visits.get(cellToKey(current))?.previous ?? 0) + neighbourCost;
+            const newTotalCost = visits.get(currentKey).totalCost + cellCost;
+            const oldTotalCost = visits.has(neighbourKey) ? visits.get(neighbourKey).totalCost : Infinity;
 
-            const currentGScore = visits.has(neighbourKey)?.previous ? visits.get(neighbourKey).previous : Infinity;
-            if (tentativeGScore < currentGScore) {
-                visits.set(neighbourKey, { tentativeGScore: tentativeGScore, previous: current });
+            if (newTotalCost > 127) {
+                console.error(`Long A* path. Start: ${start.col},${start.row} | Goal: ${goal.col},${goal.row} | Current Node: ${current.col},${current.row}`);
+                return null;
+            }
 
-                const newNeighbour = { ...neighbour, fScore: tentativeGScore + h(neighbour, goal) };
+            if (newTotalCost < oldTotalCost) {
+                visits.set(neighbourKey,
+                    {
+                        fScore: newTotalCost + h({ col: neighbour.col, row: neighbour.row }, goal),
+                        totalCost: newTotalCost,
+                        cost: neighbour.cost,
+                        previous: current
+                    }
+                );
+
+                const newNeighbour = {
+                    ...neighbour,
+                    fScore: newTotalCost + h({ col: neighbour.col, row: neighbour.row }, goal),
+                    totalCost: newTotalCost,
+                    cost: neighbour.cost,
+                    previous: current
+                };
                 candidates.insert(newNeighbour);
             }
         }
@@ -172,8 +188,6 @@ export function astar(start, goal, getNeighbours, h = manhattan) {
 export function dijkstra(start, range, getNeighbours) {
     start.occupied = start.occupied ?? false;
     start.cost = start.cost ?? 1;
-    start.totalCost = 0;
-    start.previous = null;
     const candidates = new Heap((a, b) => a.totalCost < b.totalCost);
 
     const backtrack = new Map();
@@ -192,18 +206,17 @@ export function dijkstra(start, range, getNeighbours) {
         for (const cell of getNeighbours(current)) {
             const neighbourKey = cellToKey(cell);
 
-            cell.cost = cell.cost ?? 1;
-            cell.occupied = cell.occupied ?? false;
+            if (cell.occupied) continue;
 
-            let neighbourCost = cell.cost;
-            neighbourCost = cell.occupied ? Infinity : neighbourCost;
+            const cellCost = cell.cost ?? 1;
 
-            const newTotalCost = backtrack.get(currentKey).totalCost + neighbourCost;
+            const newTotalCost = backtrack.get(currentKey).totalCost + cellCost;
             const oldTotalCost = backtrack.get(neighbourKey)?.totalCost ?? Infinity;
-            if (newTotalCost < oldTotalCost) {
-                backtrack.set(neighbourKey, { totalCost: newTotalCost, previous: current, cost: neighbourCost });
 
-                const newNeighbour = { ...cell, totalCost: newTotalCost, previous: current, cost: neighbourCost };
+            if (newTotalCost < oldTotalCost) {
+                backtrack.set(neighbourKey, { totalCost: newTotalCost, previous: current, cost: cellCost });
+
+                const newNeighbour = { ...cell, totalCost: newTotalCost, previous: current, cost: cellCost };
                 candidates.insert(newNeighbour);
             }
         }

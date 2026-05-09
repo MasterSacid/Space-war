@@ -2,7 +2,7 @@ import { MainMenu, SpaceScene, StatusPane, TerminalPane, dialogPane } from "./ui
 import { Viewport } from "./viewport.js";
 import { Grid } from "./grid.js";
 import { Bot, Combat } from "./combat.js";
-import { Coordinate, screenToCell, sleep } from "./utils.js";
+import { astar, Coordinate, screenToCell, sleep } from "./utils.js";
 import { Entity, Player } from "./entity.js";
 import { Graphics } from "./graphics.js";
 
@@ -34,12 +34,10 @@ class App {
         // Animation timer
         this.lastTime = 0;
 
-
         //Writing text to terminal pane with a cb
         this.addText = (string, letterPerSec) => new Promise((resolve) => {
             this.terminalPane.addText(string, letterPerSec, resolve);
         });
-
 
         //Showing dialog on the spacescene with a cb
         this.addDialog = (title, description, select = "select", onSelect) => new Promise((resolve) => {
@@ -81,10 +79,8 @@ class App {
             }
 
             if (this.player.entity.hasTurn) {
-                const started = this.player.entity.startTraversing(this.map.hoveredCell, this.map.cellSize, 0);
-                if (started) {
-                    this.player.entity.showAura = false;
-                }
+                const dijkstraPath = this.player.entity.getDijkstraPath(this.map.hoveredCell);
+                this.player.entity.tracePath(dijkstraPath, this.map.cellSize, 0);
             }
         });
 

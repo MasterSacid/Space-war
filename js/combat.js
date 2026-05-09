@@ -3,17 +3,18 @@ import { dijkstra, keyToCell, manhattan, Heap } from "./utils.js";
 export class Combat {
     constructor(player, entities, grid, bot) {
         this.player = player;
-        this.entities = entities;
         this.map = grid;
         this.bot = bot;
 
+        this.entities = new Set(entities);
         this.parties = new Map();
+
         this.roundCounter = 0;
         this.roundActive = false;
         this.combatActive = true;
         this.activeEntity = null;
 
-        for (const entity of entities) {
+        for (const entity of this.entities) {
             let list = this.parties.get(entity.party);
             if (!list) {
                 list = [];
@@ -76,7 +77,8 @@ export class Combat {
     }
 
     actionLoop(entity) {
-        const range = Math.floor(entity.actionPoints * entity.agility);
+        entity.performingAction = true;
+        const range = entity.getReachRadius();
         entity.dijkstraInfo = dijkstra(entity.cell, range, (cell) => this.map.getAdjacentCells(cell));
 
         entity.hasTurn = true;
@@ -87,9 +89,12 @@ export class Combat {
         }
     }
 
-    filterEntitiesBy(comparator) {
+    filterEntitiesBy(comparator, partyFilter, entityFilter) {
+        const filteredByParty = partyFilter(this.parties);
+        const filteredParties = filteredByParty.flatMap(party => [...party]);
+        const filteredByEntity = entityFilter(filteredParties);
         const heap = new Heap(comparator);
-        for (const entity of this.entities) {
+        for (const entity of filteredByEntity) {
             heap.insert(entity);
         }
         return heap;
@@ -97,9 +102,7 @@ export class Combat {
 
     update() {
         if (this.activeEntity.hasTurn == false) {
-            if (this.activeEntity = this.player.entity) {
-                this.activeEntity.showAura = false;
-            }
+            this.activeEntity.showAura = false;
             this.activeEntity = null;
             this.processNextTurn();
         } else {
@@ -115,7 +118,9 @@ export class Bot {
     }
 
     handleEntity(combat, entity) {
-        entity.takeAction(combat, this.grid);
+        if (entity.isIdle()) {
+            entity.takeAction(combat, this.grid);
+        }
     }
 
     update() { }
