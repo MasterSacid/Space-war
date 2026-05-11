@@ -57,7 +57,7 @@ export class Entity {
         this.lerpingProgress = 0;
         this.lerping = true;
         this.resolve = resolve;
-        eventSystem.publish("entity:sound",{
+        eventSystem.publish("entity:move",{
             eventAction : "move",
             entityName: this.name
         }
