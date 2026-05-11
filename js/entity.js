@@ -1,5 +1,5 @@
 import { Coordinate, cellToKey, reconstructPath, manhattan, astar } from "./utils.js";
-import { MeleeAttackAction, MoveAction } from "./action.js";
+import { AreaAttackAction, MeleeAttackAction, MoveAction, RangedAttackAction } from "./action.js";
 
 export class Entity {
     constructor(center = new Coordinate(0, 0), name = "Empty") {
@@ -20,9 +20,9 @@ export class Entity {
         this.maxActionPoints = 3;
         this.maxHealth = 100;
         this.attackDamage = 20;
-        this.rangedDamage = 15;
+        this.rangedDamage = 10;
         this.areaDamage = 10;
-        this.areaDamageRadius = 1;
+        this.areaDamageRadius = 2;
 
         this.attackSwing = 10;
         this.agility = 1;
@@ -173,6 +173,97 @@ export class Entity {
         ctx.fillText(`${Math.ceil(this.center.x)}, ${Math.ceil(this.center.y)}`, this.center.x - this.width / 20 * this.name.length, this.center.y + this.width, this.width);
 
         ctx.restore();
+    }
+}
+
+
+export class RangedEntity extends Entity {
+    constructor(center = new Coordinate(0, 0), name = "Empty") {
+        super(center, name);
+        this.attackRange = 5;
+    }
+    takeAction(combat, map) {
+        const targets = combat.filterEntitiesBy(
+            (a, b) => {
+                return manhattan(this.cell, a.cell) < manhattan(this.cell, b.cell);
+            },
+            (parties) => {
+                const array = [];
+                for (const [party, members] of parties) {
+                    if (party != this.party) {
+                        array.push(members);
+                    }
+                }
+                return array;
+            },
+            (filteredParties) => {
+                return [...filteredParties];
+            }
+        );
+
+        const healthRatio = this.health / this.maxHealth / 2;
+
+        const closest = targets.extractMin();
+
+        map.appendCell(closest.cell.col, closest.cell.row, { occupied: false });
+        const path = astar(this.cell, closest.cell, (cell) => map.getAdjacentCells(cell));
+        map.appendCell(closest.cell.col, closest.cell.row, { occupied: true });
+
+        if (this.isCellIn(closest.cell, this.attackRange)) {
+            this.enqueueAction(new RangedAttackAction(this, closest, 0.1, 400));
+        } else if (this.isCellInRange(closest.cell)) {
+            path.pop();
+            if (path.length > 1) {
+                this.tracePath(path, map.cellSize);
+            }
+        } else {
+            this.tracePath(path, map.cellSize);
+        }
+    }
+}
+
+export class AreaDamagingEntity extends Entity {
+    constructor(center = new Coordinate(0, 0), name = "Empty") {
+        super(center, name);
+        this.attackRange = 6;
+    }
+    takeAction(combat, map) {
+        const targets = combat.filterEntitiesBy(
+            (a, b) => {
+                return manhattan(this.cell, a.cell) < manhattan(this.cell, b.cell);
+            },
+            (parties) => {
+                const array = [];
+                for (const [party, members] of parties) {
+                    if (party != this.party) {
+                        array.push(members);
+                    }
+                }
+                return array;
+            },
+            (filteredParties) => {
+                return [...filteredParties];
+            }
+        );
+
+        const healthRatio = this.health / this.maxHealth / 2;
+
+        const closest = targets.extractMin();
+
+        map.appendCell(closest.cell.col, closest.cell.row, { occupied: false });
+        const path = astar(this.cell, closest.cell, (cell) => map.getAdjacentCells(cell));
+        map.appendCell(closest.cell.col, closest.cell.row, { occupied: true });
+
+        if (this.isCellIn(closest.cell, this.attackRange)) {
+            this.enqueueAction(new AreaAttackAction(this, closest, -0.1, 400, this.areaDamageRadius));
+        } else if (this.isCellInRange(closest.cell)) {
+            path.pop();
+            if (path.length > 1) {
+                this.tracePath(path, map.cellSize);
+            }
+        } else {
+            this.tracePath(path, map.cellSize);
+        }
     }
 }
 

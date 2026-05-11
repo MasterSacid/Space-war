@@ -3,15 +3,18 @@ import { Viewport } from "./viewport.js";
 import { Grid } from "./grid.js";
 import { Bot, Combat } from "./combat.js";
 import { astar, Coordinate, screenToCell, sleep } from "./utils.js";
-import { Entity, Player } from "./entity.js";
+import { Entity, Player, RangedEntity, AreaDamagingEntity } from "./entity.js";
 import { Graphics } from "./graphics.js";
 
 const entity = new Entity(new Coordinate(-96, 32), "Player");
-const wallofentities = Array.from({ length: 5 }, (_, i) => {
-    const wall = new Entity(new Coordinate(224, 160 - i * 64), "Wall " + (i + 1));
-    wall.party = "walls";
+const wallofentities = Array.from({ length: 4 }, (_, i) => {
+    const wall = new Entity(new Coordinate(224, 288 - i * 64), "Wall " + (i + 1));
+    wall.party = "enemies";
     return wall;
 });
+
+const areaEntity = new AreaDamagingEntity(new Coordinate(-32 - 6 * 64, 32), "Area");
+areaEntity.party = "enemies"
 
 class App {
     start() {
@@ -29,7 +32,9 @@ class App {
         this.map = new Grid(64, this.player);
         this.graphics = new Graphics(this.canvas, this.player, this.map);
         this.bot = new Bot(wallofentities, this.map);
-        this.combat = new Combat(this.player, [entity, ...wallofentities], this.map, this.bot);
+        this.combat = new Combat(this.player, [entity, ...wallofentities, areaEntity], this.map, this.bot);
+
+        this.entities = [entity, ...wallofentities, areaEntity];
 
         // Animation timer
         this.lastTime = 0;
@@ -94,7 +99,7 @@ class App {
             }
         });
 
-        this.map.trackedEntities = [entity, ...wallofentities];
+        this.map.trackedEntities = [entity, ...wallofentities, areaEntity];
         //this.canvas.style.cursor = 'none';
 
         //this.mainMenu.on();
@@ -126,8 +131,7 @@ class App {
 
         this.terminalPane.update(deltaTime);
 
-        wallofentities.forEach((entity) => entity.update(deltaTime));
-        entity.update(deltaTime);
+        this.entities.forEach((e) => e.update(deltaTime));
         this.player.update(deltaTime);
 
         this.map.update();
@@ -150,10 +154,7 @@ class App {
         if (!this.spaceScene.visible) {
             this.map.draw(this.ctx, this.viewport);
 
-            entity.draw(this.canvas);
-            wallofentities.forEach(entity => {
-                entity.draw(this.canvas);
-            });
+            this.entities.forEach((e) => e.draw(this.canvas));
         }
 
         // keep the animation going by requesting another animation frame
@@ -179,7 +180,7 @@ class App {
     }
 }
 
-const app = new App();
+export const app = new App();
 app.start();
 app.ctx.save();
 requestAnimationFrame((time) => app.update(time));

@@ -1,5 +1,6 @@
 import { Entity } from './entity.js';
-import { Coordinate, lerp } from './utils.js';
+import { Coordinate, lerp, manhattan } from './utils.js';
+import { app } from './index.js';
 
 class Action {
     constructor(entity) {
@@ -14,15 +15,19 @@ class Action {
 
     updateLerp(dt, onComplete) {
         this.lerpProgress += dt / this.lerpDuration;
+
+        let finished = false;
         if (this.lerpProgress >= 1) {
             this.lerpProgress = 1;
             this.lerping = false;
-            onComplete();
+            finished = true;
         }
-        const t = this.lerper(this.lerpProgress);
 
+        const t = this.lerper(this.lerpProgress);
         this.entity.center.x = lerp(this.lerpStart.x, this.lerpEnd.x, t);
         this.entity.center.y = lerp(this.lerpStart.y, this.lerpEnd.y, t);
+
+        if (finished && onComplete) onComplete();
     }
 }
 
@@ -154,49 +159,61 @@ export class MeleeAttackAction extends Action {
 export class RangedAttackAction extends Action {
     constructor(entity, target, kickback, projectileSpeed) {
         super(entity);
+        this.target = target;
         this.kickback = kickback;
         this.projectileSpeed = projectileSpeed;
 
         this.stage = 0;
-        this.lerpDuration = this.entity.maxHealth / this.projectileSpeed;
-
         this.startingPosition = this.entity.center.clone();
 
+        this.lerperProjectile = (t) => t ** 2;
+
         this.distance = { x: target.center.x - entity.center.x, y: target.center.y - entity.center.y };
-        this.projectile = new Entity(
-            this.entity.center.clone().add(new Coordinate(this.distance.x + entity.width / this.distance.x * 0.1, this.distance.y + entity.height / this.distance.y * 0.1)),
-            `projectile of ${entity.name} targeting ${target.name}`
-        );
-        this.projectileLerpDuration = Math.sqrt(this.distance.x ** 2 + this.distance.y ** 2) / this.projectileSpeed;
+        const distMag = Math.sqrt(this.distance.x ** 2 + this.distance.y ** 2);
+        const dir = {
+            x: distMag > 0 ? this.distance.x / distMag : 0,
+            y: distMag > 0 ? this.distance.y / distMag : 0
+        };
+
+        // Spawn slightly outside the entity, pointing toward the target
+        const spawn = {
+            x: this.entity.center.x + (dir.x * this.entity.width * 0.6),
+            y: this.entity.center.y + (dir.y * this.entity.height * 0.6)
+        };
+
+        this.projectile = new Entity(new Coordinate(spawn.x, spawn.y), "projectile");
+        this.projectileLerpDuration = distMag / this.projectileSpeed;
         this.projectileLerping = false;
         this.projectileLerpingProgress = 0;
-        this.projectileLerpStart = { x: this.projectile.center.x, y: this.projectile.center.y };
+        this.projectileLerpStart = { x: spawn.x, y: spawn.y };
         this.projectileLerpEnd = { x: this.target.center.x, y: this.target.center.y };
 
-        start();
+        this.start();
     }
 
     dealDamage() {
         this.entity.actionPoints -= this.entity.attackCost;
         const damage = this.entity.getRangedDamage();
-        target.health -= damage;
+        this.target.health -= damage;
+        console.log(`${this.entity.name} has dealt ${damage} to ${this.target.name}`);
     }
 
     updateLerpProjectile(dt) {
-        this.lerpingProjectile = true;
-        this.lerpingProgressProjectile += dt;
+        this.projectileLerpingProgress += dt / this.projectileLerpDuration;
 
-        if (this.lerpingProgressProjectile >= 1) {
-            this.lerpingProgressProjectile = 1;
-            this.projectileLerping = false
+        if (this.projectileLerpingProgress >= 1) {
+            this.projectileLerpingProgress = 1;
+            this.projectileLerping = false;
         }
 
-        this.projectile.center.x = lerp(this.projectileLerpStart.x, this.projectileLerpEnd.x, this.lerper(this.lerpingProgressProjectile));
-        this.projectile.center.x = lerp(this.projectileLerpStart.x, this.projectileLerpEnd.y, this.lerper(this.lerpingProgressProjectile));
+        const t = this.lerperProjectile(this.projectileLerpingProgress);
+        this.projectile.center.x = lerp(this.projectileLerpStart.x, this.projectileLerpEnd.x, t);
+        this.projectile.center.y = lerp(this.projectileLerpStart.y, this.projectileLerpEnd.y, t);
     }
 
     start() {
         this.active = true;
+        this.moveBack();
     }
 
     end() {
@@ -204,40 +221,87 @@ export class RangedAttackAction extends Action {
     }
 
     moveBack() {
-        this.lerping = true;
         this.lerpStart = this.entity.center.clone();
-        this.lerpEnd.x = this.entity.center.x - this.distance.x * this.kickback;
-        this.lerpEnd.y = this.entity.center.y - this.distance.y * this.kickback;
+        this.lerpEnd = {
+            x: this.entity.center.x - this.distance.x * this.kickback,
+            y: this.entity.center.y - this.distance.y * this.kickback
+        };
+        this.lerping = true;
+        this.lerpProgress = 0;
+        this.stage = 0;
     }
 
     moveToStart() {
-        this.lerping = true;
-        this.lerpStart = this.entity.center;
+        this.lerpStart = this.entity.center.clone();
         this.lerpEnd = this.startingPosition;
+        this.lerping = true;
+        this.lerpProgress = 0;
+        this.stage = 1;
     }
 
     update(dt) {
-        if (this.active) {
-            if (this.lerping) {
-                this.updateLerp(dt, () => this.stage++);
-            } else {
-                if (this.stage == 0) {
-                    this.moveBack();
-                } else if (this.stage == 1) {
+        if (!this.active) return true;
+
+        if (this.lerping) {
+            this.updateLerp(dt, () => {
+                if (this.stage === 0) {
+                    app.entities.push(this.projectile);
+                    this.projectileLerping = true;
                     this.moveToStart();
-                } else {
-                    this.lerping = false;
+                }
+            });
+        }
+
+        if (this.projectileLerping) {
+            this.updateLerpProjectile(dt);
+
+            if (!this.projectileLerping) {
+                this.dealDamage();
+
+                const index = app.entities.indexOf(this.projectile);
+                if (index > -1) {
+                    app.entities.splice(index, 1);
                 }
             }
-            if (this.projectileLerping) {
-                this.updateLerpProjectile(dt);
-            } else {
-                this.dealDamage();
-                this.end();
-            }
-            return false;
-        } else {
+        }
+
+        if (!this.projectileLerping && !this.lerping && this.stage === 1) {
+            this.end();
             return true;
         }
+
+        return false;
+    }
+}
+
+export class AreaAttackAction extends RangedAttackAction {
+    constructor(entity, target, kickback, projectileSpeed, radius) {
+
+        const targetX = target.center ? target.center.x : target.x;
+        const targetY = target.center ? target.center.y : target.y;
+
+        const dummyTarget = new Entity(new Coordinate(targetX, targetY), "dummyTarget");
+
+        super(entity, dummyTarget, kickback || 0, projectileSpeed);
+
+        this.radius = radius;
+
+        this.impactCell = target.cell ? target.cell : target;
+    }
+
+    dealDamage() {
+        this.entity.actionPoints -= this.entity.attackCost;
+        const damage = this.entity.getAreaDamage();
+
+        app.entities.forEach((e) => {
+            if (!e.cell || e.health === undefined) return;
+
+            const distance = manhattan(e.cell, this.impactCell);
+
+            if (distance <= this.radius) {
+                e.health -= damage;
+                console.log(`Area damage of ${damage} dealt to ${e.name}`);
+            }
+        });
     }
 }
