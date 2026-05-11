@@ -79,8 +79,11 @@ class App {
             }
 
             if (this.player.entity.hasTurn) {
-                const dijkstraPath = this.player.entity.getDijkstraPath(this.map.hoveredCell);
-                this.player.entity.tracePath(dijkstraPath, this.map.cellSize, 0);
+                if (this.player.entity.isCellInReach(this.map.hoveredCell)) {
+                    const dijkstraPath = this.player.entity.getDijkstraPath(this.map.hoveredCell);
+                    this.player.entity.tracePath(dijkstraPath, this.map.cellSize, 0);
+                    this.player.hasPlayed = true;
+                }
             }
         });
 
@@ -147,9 +150,9 @@ class App {
         if (!this.spaceScene.visible) {
             this.map.draw(this.ctx, this.viewport);
 
-            entity.draw(this.ctx);
+            entity.draw(this.canvas);
             wallofentities.forEach(entity => {
-                entity.draw(this.ctx);
+                entity.draw(this.canvas);
             });
         }
 

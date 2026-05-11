@@ -186,6 +186,10 @@ export function astar(start, goal, getNeighbours, h = manhattan) {
 }
 
 export function dijkstra(start, range, getNeighbours) {
+    if (range == NaN || range == Infinity || range == undefined || range == null) {
+        console.error("Invalid dijkstra range", range);
+        return;
+    }
     start.occupied = start.occupied ?? false;
     start.cost = start.cost ?? 1;
     const candidates = new Heap((a, b) => a.totalCost < b.totalCost);
@@ -211,6 +215,10 @@ export function dijkstra(start, range, getNeighbours) {
             const cellCost = cell.cost ?? 1;
 
             const newTotalCost = backtrack.get(currentKey).totalCost + cellCost;
+            if (newTotalCost > 127) {
+                console.error("Long dijkstra path.");
+                return null;
+            }
             const oldTotalCost = backtrack.get(neighbourKey)?.totalCost ?? Infinity;
 
             if (newTotalCost < oldTotalCost) {

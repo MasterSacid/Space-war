@@ -77,7 +77,6 @@ export class Combat {
     }
 
     actionLoop(entity) {
-        entity.performingAction = true;
         const range = entity.getReachRadius();
         entity.dijkstraInfo = dijkstra(entity.cell, range, (cell) => this.map.getAdjacentCells(cell));
 
@@ -106,7 +105,16 @@ export class Combat {
             this.activeEntity = null;
             this.processNextTurn();
         } else {
-            this.actionLoop(this.activeEntity);
+            if (this.activeEntity.isIdle()) {
+                if (this.activeEntity === this.player.entity) {
+                    if (this.player.hasPlayed) {
+                        this.actionLoop(this.activeEntity);
+                        this.player.hasPlayed = false;
+                    }
+                } else {
+                    this.actionLoop(this.activeEntity);
+                }
+            }
         }
     }
 }
@@ -118,9 +126,7 @@ export class Bot {
     }
 
     handleEntity(combat, entity) {
-        if (entity.isIdle()) {
-            entity.takeAction(combat, this.grid);
-        }
+        entity.takeAction(combat, this.grid);
     }
 
     update() { }
