@@ -13,6 +13,8 @@ export class Graphics {
         this.defaultMapFile = "map1.json";
         this.selectedMapFile = this.defaultMapFile;
         this.currentTileSelection = null;
+        this.currentTileZIndex = 0;
+        this.currentTileCost = 1;
         this.ctx.imageSmoothingEnabled = false;
 
         this.setupTilesets();
@@ -32,6 +34,12 @@ export class Graphics {
         this.tilePalette = new TilePalette(paletteContainer, {
             onSelect: (selection) => {
                 this.currentTileSelection = selection;
+            },
+            onZIndexChange: (zIndex) => {
+                this.currentTileZIndex = zIndex;
+            },
+            onCostChange: (cost) => {
+                this.currentTileCost = cost;
             }
         });
 
@@ -87,7 +95,7 @@ export class Graphics {
 
     createMapData() {
         return {
-            version: 1,
+            version: 2,
             savedAt: new Date().toISOString(),
             file: this.selectedMapFile,
             cellSize: this.map.cellSize,
@@ -219,13 +227,15 @@ export class Graphics {
     applyBrushToCell(targetCell) {
         if (!this.currentTileSelection) return;
 
-        const cellKey = cellToKey({ col: targetCell.col, row: targetCell.row });
+        const zIndex = this.tilePalette?.selectedZIndex ?? this.currentTileZIndex;
+        const cost = this.tilePalette?.selectedCost ?? this.currentTileCost;
+        const cellKey = `${cellToKey({ col: targetCell.col, row: targetCell.row })}:${zIndex}`;
         if (this.lastPaintedCellKey === cellKey) return;
 
         this.lastPaintedCellKey = cellKey;
 
         if (this.currentTileSelection.type === "eraser") {
-            this.map.clearTile(targetCell.col, targetCell.row);
+            this.map.clearTile(targetCell.col, targetCell.row, zIndex);
             return;
         }
 
@@ -233,7 +243,9 @@ export class Graphics {
             targetCell.col,
             targetCell.row,
             this.currentTileSelection.tileset,
-            this.currentTileSelection.tileIndex
+            this.currentTileSelection.tileIndex,
+            zIndex,
+            cost
         );
     }
 

@@ -1,5 +1,7 @@
 import { cellToKey } from "./utils.js";
 
+const paintedTileKey = (col, row, zIndex) => `${cellToKey({ col, row })}:${zIndex}`;
+
 export class Grid {
     constructor(cellSize = 64, player) {
         this.cellSize = cellSize;
@@ -50,22 +52,29 @@ export class Grid {
     }
 
     //Bu fonksyion paintedTiles mapine tile bilgisini kaydediyor
-    paintTile(col, row, tileset, tileIndex) {
-        this.paintedTiles.set(cellToKey({ col: col, row: row }), { col, row, tileset, tileIndex });
+    paintTile(col, row, tileset, tileIndex, zIndex, cost = 1) {
+        this.paintedTiles.set(
+            paintedTileKey(col, row, zIndex),
+            { col, row, tileset, tileIndex, zIndex, cost }
+        );
+        this.appendCell(col, row, { cost });
     }
 
-    clearTile(col, row) {
-        this.paintedTiles.delete(cellToKey({ col: col, row: row }));
+    clearTile(col, row, zIndex) {
+        this.paintedTiles.delete(paintedTileKey(col, row, zIndex));
     }
 
     //JSON dosyasina yazmak icin map imizi parcaliyoruz
     exportPaintedTiles() {
-        return Array.from(this.paintedTiles.values()).map((tile) => ({
-            col: tile.col,
-            row: tile.row,
-            tileset: tile.tileset.name,
-            tileIndex: tile.tileIndex
-        }));
+        return Array.from(this.paintedTiles.values())
+            .map((tile) => ({
+                col: tile.col,
+                row: tile.row,
+                tileset: tile.tileset.name,
+                tileIndex: tile.tileIndex,
+                zIndex: tile.zIndex,
+                cost: tile.cost
+            }));
     }
 
     //Export edilmis tile listesini paintTiles icine yukleme islemini yapar
@@ -76,7 +85,14 @@ export class Grid {
             const tileset = getTilesetByName(tile.tileset);
             if (!tileset) continue;
 
-            this.paintTile(tile.col, tile.row, tileset, tile.tileIndex);
+            this.paintTile(
+                tile.col,
+                tile.row,
+                tileset,
+                tile.tileIndex,
+                tile.zIndex,
+                tile.cost ?? 1
+            );
         }
     }
 
@@ -166,6 +182,8 @@ export class Grid {
 
     drawPaintedTiles(ctx, startCol, startRow, endCol, endRow) {
         ctx.imageSmoothingEnabled = false;
+        const tilesByZIndex = [[], []];
+
         //Gorunmeyen tile lari cizme ve atla
         for (const tile of this.paintedTiles.values()) {
             if (
@@ -177,14 +195,20 @@ export class Grid {
                 continue;
             }
 
-            tile.tileset.drawTile(
-                ctx,
-                tile.tileIndex,
-                tile.col * this.cellSize,
-                tile.row * this.cellSize,
-                this.cellSize,
-                this.cellSize
-            );
+            tilesByZIndex[tile.zIndex].push(tile);
+        }
+
+        for (const tiles of tilesByZIndex) {
+            for (const tile of tiles) {
+                tile.tileset.drawTile(
+                    ctx,
+                    tile.tileIndex,
+                    tile.col * this.cellSize,
+                    tile.row * this.cellSize,
+                    this.cellSize,
+                    this.cellSize
+                );
+            }
         }
     }
 
