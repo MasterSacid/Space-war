@@ -44,6 +44,7 @@ html,body{
     left:50%;
     transform: translate(-50%,-50%);
     height: 50%;
+    width: 100%
 }
 
 #playButton{
@@ -55,6 +56,50 @@ html,body{
 }
 #playButton:hover{
     font-size: 40px;
+}
+
+#cardPane{
+    position: absolute;
+    top: 0;
+    left: 100%;
+    width: calc(33% + 1px);
+    height: calc(100% + 1px);
+
+    background: radial-gradient(circle at 50%, #303030 50%, #242424 75%, #121212 90%, #060606 100%);
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5%;
+}
+
+.card{
+    display:flex;
+    flex-direction: column;
+    width: 90%;
+
+    background: darkgreen;
+    text-align: center;
+    border: 5px white solid;
+
+    padding: 2%;
+}
+
+.card-header{
+    flex: 1 1 0;
+    height: 1.5lh;
+    width: 100%;
+    font:20px 'PressStart2P';
+}
+
+.card-description{
+    flex: 1 1 0;
+    width: 100%;
+    font: 10px 'PressStart2P';
+}
+
+.card.selected-card {
+    outline: 5px solid yellow
 }
 
 #terminalPane{

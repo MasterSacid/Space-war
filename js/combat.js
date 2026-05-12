@@ -17,10 +17,10 @@ export class Combat {
         for (const entity of this.entities) {
             let list = this.parties.get(entity.party);
             if (!list) {
-                list = [];
+                list = new Set();
                 this.parties.set(entity.party, list);
             }
-            list.push(entity);
+            list.add(entity);
         }
         this.startRound();
     }
@@ -54,10 +54,13 @@ export class Combat {
     }
 
     processNextTurn() {
-        if (this.parties.size <= 1) {
-            this.combatActive = false;
-            return;
+        for (const entity of [...this.entities]) {
+            if (entity.status === "incapacitated" || entity.status === "dead") {
+                this.onDeath(entity);
+            }
         }
+
+        if (!this.combatActive) return;
 
         if (this.turnQueue.length === 0) {
             this.atRoundEnd();
@@ -68,12 +71,29 @@ export class Combat {
         const { entity } = this.turnQueue.shift();
         this.activeEntity = entity;
 
-        if (entity?.status === "incapacitated" || entity?.status === "dead") {
+        if (entity.status === "incapacitated" || entity.status === "dead") {
             this.processNextTurn();
             return;
         }
 
         this.actionLoop(entity);
+    }
+
+    onDeath(entity) {
+        const partySet = this.parties.get(entity.party);
+        if (partySet) {
+            partySet.delete(entity);
+            if (partySet.size === 0) {
+                this.parties.delete(entity.party);
+            }
+        }
+
+        this.entities.delete(entity);
+
+        if (this.parties.size <= 1) {
+            this.combatActive = false;
+            console.log("Combat has ended.");
+        }
     }
 
     actionLoop(entity) {
@@ -100,19 +120,21 @@ export class Combat {
     }
 
     update() {
-        if (this.activeEntity.hasTurn == false) {
-            this.activeEntity.showAura = false;
-            this.activeEntity = null;
-            this.processNextTurn();
-        } else {
-            if (this.activeEntity.isIdle()) {
-                if (this.activeEntity === this.player.entity) {
-                    if (this.player.hasPlayed) {
+        if (this.combatActive) {
+            if (this.activeEntity.hasTurn == false) {
+                this.activeEntity.showAura = false;
+                this.activeEntity = null;
+                this.processNextTurn();
+            } else {
+                if (this.activeEntity.isIdle()) {
+                    if (this.activeEntity === this.player.entity) {
+                        if (this.player.hasPlayed) {
+                            this.actionLoop(this.activeEntity);
+                            this.player.hasPlayed = false;
+                        }
+                    } else {
                         this.actionLoop(this.activeEntity);
-                        this.player.hasPlayed = false;
                     }
-                } else {
-                    this.actionLoop(this.activeEntity);
                 }
             }
         }

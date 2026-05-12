@@ -1,4 +1,4 @@
-import { MainMenu, SpaceScene, StatusPane, TerminalPane, dialogPane } from "./ui.js"
+import { MainMenu, SpaceScene, StatusPane, TerminalPane, CardPane, dialogPane } from "./ui.js"
 import { Viewport } from "./viewport.js";
 import { Grid } from "./grid.js";
 import { Bot, Combat } from "./combat.js";
@@ -28,6 +28,7 @@ class App {
         this.statusPane = new StatusPane(canvas);
         this.statusPane = new StatusPane(canvas);
         this.terminalPane = new TerminalPane(canvas);
+        this.cardPane = new CardPane(canvas);
         this.dialogPane = new dialogPane(canvas);
         this.map = new Grid(64, this.player);
         this.graphics = new Graphics(this.canvas, this.player, this.map);
@@ -169,6 +170,7 @@ class App {
         this.dialogPane.off();
         this.statusPane.off();
         this.terminalPane.off();
+        this.cardPane.off();
         this.spaceScene.visible = false;
     }
 
@@ -176,6 +178,7 @@ class App {
         this.dialogPane.on();
         this.statusPane.on();
         this.terminalPane.on();
+        this.cardPane.on();
         this.spaceScene.visible = true;
     }
 }

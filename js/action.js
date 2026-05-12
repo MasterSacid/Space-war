@@ -2,9 +2,34 @@ import { Entity } from './entity.js';
 import { Coordinate, lerp, manhattan } from './utils.js';
 import { app } from './index.js';
 
-class Action {
+export class ActionDescriptor {
+    constructor(action, color, title) {
+        this.action = action;
+        this.actionBackground = color;
+
+        this.actionTitle = title;
+        this.actionDescription;
+    }
+
+    setDescription(cost, damage, swing) {
+        this.actionDescription = `Costs ${cost}. Select one enemy to strike them at a close range with a base damage of ${damage} and a possiblity of up to+${swing} more damage.`;
+    }
+}
+
+export class Skip {
     constructor(entity) {
+        entity.hasTurn = false;
+    }
+
+    update() {
+        return true;
+    }
+}
+
+class Action {
+    constructor(entity, autostart = true) {
         this.entity = entity;
+        this.autoStart = autostart;
         this.lerping = false;
         this.lerpDuration = 0.5 / (this.entity.maxActionPoints * this.entity.agility);
         this.lerpProgress = 0;
@@ -32,8 +57,8 @@ class Action {
 }
 
 export class MoveAction extends Action {
-    constructor(entity, path, apLimit, cellSize) {
-        super(entity);
+    constructor(entity, path, apLimit, cellSize, autostart = true) {
+        super(entity, autostart);
         this.path = path;
         this.apLimit = apLimit;
         this.cellSize = cellSize;
@@ -41,7 +66,10 @@ export class MoveAction extends Action {
         this.pathIndex = 0;
 
         this.active = false;
-        this.start();
+
+        if (this.autoStart) {
+            this.start();
+        }
     }
 
     start() {
@@ -57,7 +85,6 @@ export class MoveAction extends Action {
         this.active = false;
         this.pathIndex = 0;
         this.entity.moving = false;
-        console.log(this.entity.name, 'finished path');
     }
 
     moveTo(targetCell) {
@@ -91,8 +118,8 @@ export class MoveAction extends Action {
 }
 
 export class MeleeAttackAction extends Action {
-    constructor(entity, targetEntity) {
-        super(entity);
+    constructor(entity, targetEntity, autostart = true) {
+        super(entity, autostart);
         this.target = targetEntity;
 
         this.active = false;
@@ -102,7 +129,10 @@ export class MeleeAttackAction extends Action {
         this.startingPosition = this.entity.center.clone();
         this.stage = 0;
 
-        this.start();
+        if (this.autoStart) {
+            this.start();
+        }
+
     }
 
     start() {
@@ -157,8 +187,8 @@ export class MeleeAttackAction extends Action {
 }
 
 export class RangedAttackAction extends Action {
-    constructor(entity, target, kickback, projectileSpeed) {
-        super(entity);
+    constructor(entity, target, kickback, projectileSpeed, autostart = true) {
+        super(entity, autostart);
         this.target = target;
         this.kickback = kickback;
         this.projectileSpeed = projectileSpeed;
@@ -182,13 +212,18 @@ export class RangedAttackAction extends Action {
         };
 
         this.projectile = new Entity(new Coordinate(spawn.x, spawn.y), "projectile");
+        this.projectile.width = 20;
+        this.projectile.height = 60;
+        this.projectile.rotation = Math.atan2(target.center.y - entity.center.y, target.center.x - entity.center.x) + Math.PI / 2;
         this.projectileLerpDuration = distMag / this.projectileSpeed;
         this.projectileLerping = false;
         this.projectileLerpingProgress = 0;
         this.projectileLerpStart = { x: spawn.x, y: spawn.y };
         this.projectileLerpEnd = { x: this.target.center.x, y: this.target.center.y };
 
-        this.start();
+        if (autostart) {
+            this.start();
+        }
     }
 
     dealDamage() {
@@ -275,18 +310,23 @@ export class RangedAttackAction extends Action {
 }
 
 export class AreaAttackAction extends RangedAttackAction {
-    constructor(entity, target, kickback, projectileSpeed, radius) {
+    constructor(entity, target, kickback, projectileSpeed, radius, autostart = true) {
 
         const targetX = target.center ? target.center.x : target.x;
         const targetY = target.center ? target.center.y : target.y;
 
         const dummyTarget = new Entity(new Coordinate(targetX, targetY), "dummyTarget");
 
-        super(entity, dummyTarget, kickback || 0, projectileSpeed);
+        super(entity, dummyTarget, kickback || 0, projectileSpeed, autostart);
 
         this.radius = radius;
 
         this.impactCell = target.cell ? target.cell : target;
+
+        if (autostart) {
+            this.start();
+        }
+
     }
 
     dealDamage() {
@@ -300,7 +340,6 @@ export class AreaAttackAction extends RangedAttackAction {
 
             if (distance <= this.radius) {
                 e.health -= damage;
-                console.log(`Area damage of ${damage} dealt to ${e.name}`);
             }
         });
     }

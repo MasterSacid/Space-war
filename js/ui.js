@@ -249,3 +249,46 @@ export class dialogPane extends Window {
         this.container.innerHTML = "";
     }
 }
+
+export class CardPane extends Window {
+    constructor(canvas) {
+        super(canvas);
+        this.container = document.getElementById("cardPane");
+        this.container.style.display = "flex";
+        this.dialogIdCounter = 0;
+
+        this.selectedCardIndex;
+
+        const cards = this.container.querySelectorAll(".card");
+
+        cards.forEach((card, i) => {
+            card.addEventListener("mousedown", (e) => {
+                let noAdd = false;
+                if (this.selectedCardIndex == i) {
+                    this.selectedCardIndex = -1;
+                    noAdd = true;
+                } else {
+                    this.selectedCardIndex = i;
+                }
+
+                cards.forEach((c, j) => {
+                    c.classList.remove("selected-card");
+
+                    if (j === this.selectedCardIndex && !noAdd) {
+                        c.classList.add("selected-card");
+                    }
+                });
+            });
+        });
+    }
+
+
+    on() {
+        this.container.style.display = "flex";
+    }
+
+    off() {
+        this.container.style.display = "none";
+    }
+
+}

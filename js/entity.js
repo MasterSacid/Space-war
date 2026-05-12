@@ -1,5 +1,5 @@
 import { Coordinate, cellToKey, reconstructPath, manhattan, astar } from "./utils.js";
-import { AreaAttackAction, MeleeAttackAction, MoveAction, RangedAttackAction } from "./action.js";
+import { ActionDescriptor, AreaAttackAction, MeleeAttackAction, MoveAction, RangedAttackAction, Skip } from "./action.js";
 
 export class Entity {
     constructor(center = new Coordinate(0, 0), name = "Empty") {
@@ -21,7 +21,7 @@ export class Entity {
         this.maxHealth = 100;
         this.attackDamage = 20;
         this.rangedDamage = 10;
-        this.areaDamage = 10;
+        this.areaDamage = 15;
         this.areaDamageRadius = 2;
 
         this.attackSwing = 10;
@@ -38,6 +38,7 @@ export class Entity {
         this.health = this.maxHealth;
         this.hasTurn = false;
         this.showAura = false;
+        this.status = "alive"
 
         // Initial update
         this.update(0);
@@ -111,8 +112,6 @@ export class Entity {
             }
         );
 
-        const healthRatio = this.health / this.maxHealth / 2;
-
         const closest = targets.extractMin();
 
         console.log(this.name, 'calculating astar');
@@ -120,7 +119,7 @@ export class Entity {
         const path = astar(this.cell, closest.cell, (cell) => map.getAdjacentCells(cell));
         map.appendCell(closest.cell.col, closest.cell.row, { occupied: true });
 
-        if (this.isCellIn(closest.cell, this.attackRange)) {
+        if (this.isCellIn(closest.cell, this.attackRange && this.actionPoints >= this.attackCost)) {
             this.enqueueAction(new MeleeAttackAction(this, closest));
         } else if (this.isCellInRange(closest.cell)) {
             path.pop();
@@ -140,6 +139,10 @@ export class Entity {
                 if (this.actionPoints <= 0) this.hasTurn = false;
                 this.actionQueue.shift()
             }
+        }
+
+        if (this.health <= 0) {
+            this.status = "dead";
         }
 
         if (!this.moving) {
@@ -181,6 +184,7 @@ export class RangedEntity extends Entity {
     constructor(center = new Coordinate(0, 0), name = "Empty") {
         super(center, name);
         this.attackRange = 5;
+        this.attackCost = 1;
     }
     takeAction(combat, map) {
         const targets = combat.filterEntitiesBy(
@@ -210,7 +214,11 @@ export class RangedEntity extends Entity {
         map.appendCell(closest.cell.col, closest.cell.row, { occupied: true });
 
         if (this.isCellIn(closest.cell, this.attackRange)) {
-            this.enqueueAction(new RangedAttackAction(this, closest, 0.1, 400));
+            if (this.actionPoints >= this.attackCost) {
+                this.enqueueAction(new RangedAttackAction(this, closest, 0.1, 400));
+            } else {
+                this.enqueueAction(new Skip(this));
+            }
         } else if (this.isCellInRange(closest.cell)) {
             path.pop();
             if (path.length > 1) {
@@ -225,7 +233,9 @@ export class RangedEntity extends Entity {
 export class AreaDamagingEntity extends Entity {
     constructor(center = new Coordinate(0, 0), name = "Empty") {
         super(center, name);
+        this.maxActionPoints = 3;
         this.attackRange = 6;
+        this.attackCost = 2;
     }
     takeAction(combat, map) {
         const targets = combat.filterEntitiesBy(
@@ -255,7 +265,12 @@ export class AreaDamagingEntity extends Entity {
         map.appendCell(closest.cell.col, closest.cell.row, { occupied: true });
 
         if (this.isCellIn(closest.cell, this.attackRange)) {
-            this.enqueueAction(new AreaAttackAction(this, closest, -0.1, 400, this.areaDamageRadius));
+            if (this.actionPoints >= this.attackCost) {
+                this.enqueueAction(new AreaAttackAction(this, closest, -0.1, 400, this.areaDamageRadius));
+            } else {
+                console.log(this.actionPoints);
+                this.enqueueAction(new Skip(this));
+            }
         } else if (this.isCellInRange(closest.cell)) {
             path.pop();
             if (path.length > 1) {
