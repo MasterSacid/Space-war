@@ -31,7 +31,7 @@ export class Sound {
         }
     };
 
-    playSound(name,volume = 0.1) {
+    playSound(name, volume = 0.3) {
         const sound = this.soundCatalogue[name];
         if (!sound) {
             console.log(`Ses ${name} bulunamadi`);
@@ -43,7 +43,7 @@ export class Sound {
 
         const instance = picked.cloneNode();
         instance.volume = volume;
-        instance.play().catch(() => {});
+        instance.play().catch(() => { });
     }
 
     destroy() {

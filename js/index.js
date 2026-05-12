@@ -1,27 +1,21 @@
-import { MainMenu, SpaceScene, StatusPane, TerminalPane, dialogPane } from "./ui.js"
+import { MainMenu, SpaceScene, StatusPane, TerminalPane, CardPane, dialogPane } from "./ui.js"
 import { Viewport } from "./viewport.js";
 import { Grid } from "./grid.js";
 import { Bot, Combat } from "./combat.js";
 import { astar, Coordinate, screenToCell, sleep } from "./utils.js";
-import { Entity, Player } from "./entity.js";
+import { Entity, Player, RangedEntity, AreaDamagingEntity } from "./entity.js";
 import { Graphics } from "./graphics.js";
-import { AnimationSet } from "./animation.js";
+import { Sound } from "./sound.js";
 
-const bikerSet = new AnimationSet();
-bikerSet.addAnimation("idle", { imageUrl: "img/animations/Biker_idle.png", frameCount: 4 });
-bikerSet.addAnimation("run", { imageUrl: "img/animations/Biker_run.png", frameCount: 6 });
-
-const enemySet = new AnimationSet({ flipped: true });
-enemySet.addAnimation("idle", { imageUrl: "img/animations/Enemy_idle.png", frameCount: 4 });
-enemySet.addAnimation("attack", { imageUrl: "img/animations/Enemy_punch.png", frameCount: 3 });
-enemySet.addAnimation("run", { imageUrl: "img/animations/Enemy_run.png", frameCount: 4 });
-
-const entity = new Entity(new Coordinate(-96, 32), "Player", bikerSet);
-const wallofentities = Array.from({ length: 5 }, (_, i) => {
-    const wall = new Entity(new Coordinate(224, 160 - i * 64), "Wall " + (i + 1), enemySet);
-    wall.party = "walls";
+const entity = new Entity(new Coordinate(-96, 32), "Player");
+const wallofentities = Array.from({ length: 4 }, (_, i) => {
+    const wall = new Entity(new Coordinate(224, 288 - i * 64), "Wall " + (i + 1));
+    wall.party = "enemies";
     return wall;
 });
+
+const areaEntity = new AreaDamagingEntity(new Coordinate(-32 - 6 * 64, 32), "Area");
+areaEntity.party = "enemies"
 
 class App {
     start() {
@@ -35,11 +29,16 @@ class App {
         this.statusPane = new StatusPane(canvas);
         this.statusPane = new StatusPane(canvas);
         this.terminalPane = new TerminalPane(canvas);
+        this.cardPane = new CardPane(canvas);
         this.dialogPane = new dialogPane(canvas);
         this.map = new Grid(64, this.player);
+        this.sound = new Sound();
+
         this.graphics = new Graphics(this.canvas, this.player, this.map);
         this.bot = new Bot(wallofentities, this.map);
-        this.combat = new Combat(this.player, [entity, ...wallofentities], this.map, this.bot);
+        this.combat = new Combat(this.player, [entity, ...wallofentities, areaEntity], this.map, this.bot);
+
+        this.entities = [entity, ...wallofentities, areaEntity];
 
         // Animation timer
         this.lastTime = 0;
@@ -88,13 +87,11 @@ class App {
                 return;
             }
 
-            if (this.player.entity.hasTurn) {
-                if (this.player.entity.isCellInReach(this.map.hoveredCell)) {
-                    const dijkstraPath = this.player.entity.getDijkstraPath(this.map.hoveredCell);
-                    this.player.entity.tracePath(dijkstraPath, this.map.cellSize, 0);
-                    this.player.hasPlayed = true;
-                }
+            if (this.player.entity.isCellInReach(this.map.hoveredCell)) {
+                const dijkstraPath = this.player.entity.getDijkstraPath(this.map.hoveredCell);
+                this.player.publish("move", { path: dijkstraPath, cellSize: this.map.cellSize, apLimit: 0 });
             }
+
         });
 
         //Mouse up handler.
@@ -104,7 +101,7 @@ class App {
             }
         });
 
-        this.map.trackedEntities = [entity, ...wallofentities];
+        this.map.trackedEntities = [entity, ...wallofentities, areaEntity];
         //this.canvas.style.cursor = 'none';
 
         //this.mainMenu.on();
@@ -136,8 +133,7 @@ class App {
 
         this.terminalPane.update(deltaTime);
 
-        wallofentities.forEach((entity) => entity.update(deltaTime));
-        entity.update(deltaTime);
+        this.entities.forEach((e) => e.update(deltaTime));
         this.player.update(deltaTime);
 
         this.map.update();
@@ -160,10 +156,7 @@ class App {
         if (!this.spaceScene.visible) {
             this.map.draw(this.ctx, this.viewport);
 
-            entity.draw(this.canvas);
-            wallofentities.forEach(entity => {
-                entity.draw(this.canvas);
-            });
+            this.entities.forEach((e) => e.draw(this.canvas));
         }
 
         // keep the animation going by requesting another animation frame
@@ -178,6 +171,7 @@ class App {
         this.dialogPane.off();
         this.statusPane.off();
         this.terminalPane.off();
+        this.cardPane.off();
         this.spaceScene.visible = false;
     }
 
@@ -185,14 +179,12 @@ class App {
         this.dialogPane.on();
         this.statusPane.on();
         this.terminalPane.on();
+        this.cardPane.on();
         this.spaceScene.visible = true;
     }
 }
 
-const app = new App();
-(async () => {
-    await Promise.all([bikerSet.ready(), enemySet.ready()]);
-    app.start();
-    app.ctx.save();
-    requestAnimationFrame((time) => app.update(time));
-})();
+export const app = new App();
+app.start();
+app.ctx.save();
+requestAnimationFrame((time) => app.update(time));

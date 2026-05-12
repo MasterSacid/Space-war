@@ -1,7 +1,488 @@
 {
   "version": 1,
-  "savedAt": "2026-05-05T17:56:27.402Z",
+  "savedAt": "2026-05-07T12:14:29.324Z",
   "file": "map1.json",
   "cellSize": 64,
-  "tiles": []
+  "tiles": [
+    {
+      "col": -4,
+      "row": -2,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -3,
+      "row": -2,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -2,
+      "row": -2,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -1,
+      "row": -2,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 0,
+      "row": -2,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 0,
+      "row": -1,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -1,
+      "row": -1,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -1,
+      "row": 0,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -2,
+      "row": 0,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -3,
+      "row": 0,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -4,
+      "row": 0,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -4,
+      "row": -1,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -3,
+      "row": -1,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -2,
+      "row": -1,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -1,
+      "row": 1,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -2,
+      "row": 1,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -3,
+      "row": 1,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -4,
+      "row": 1,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -4,
+      "row": 2,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -3,
+      "row": 2,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 0,
+      "row": 1,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 1,
+      "row": 1,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 1,
+      "row": 0,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 1,
+      "row": -1,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -1,
+      "row": -3,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -2,
+      "row": -3,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -3,
+      "row": -3,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -5,
+      "row": -2,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -5,
+      "row": -1,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -5,
+      "row": 0,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -5,
+      "row": 1,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -2,
+      "row": 2,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -1,
+      "row": 2,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 0,
+      "row": 2,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 1,
+      "row": 2,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 1,
+      "row": -2,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 0,
+      "row": 0,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 0,
+      "row": -3,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 0,
+      "row": -4,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -1,
+      "row": -4,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -2,
+      "row": -4,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -3,
+      "row": -4,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -4,
+      "row": -4,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -4,
+      "row": -3,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -5,
+      "row": -3,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -5,
+      "row": 2,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -5,
+      "row": 3,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -4,
+      "row": 3,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 1,
+      "row": 3,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 0,
+      "row": 3,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -1,
+      "row": 3,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -1,
+      "row": 4,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -2,
+      "row": 4,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -3,
+      "row": 4,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -3,
+      "row": 3,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -2,
+      "row": 3,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 1,
+      "row": -3,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 0,
+      "row": -5,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 1,
+      "row": -4,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 1,
+      "row": -5,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -1,
+      "row": -5,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -2,
+      "row": -5,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -5,
+      "row": -4,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -5,
+      "row": -5,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -4,
+      "row": -5,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -3,
+      "row": -5,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 2,
+      "row": 2,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 2,
+      "row": 3,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 2,
+      "row": 4,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 1,
+      "row": 4,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 0,
+      "row": 4,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -4,
+      "row": 4,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": -5,
+      "row": 4,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 2,
+      "row": 1,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 2,
+      "row": 0,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 2,
+      "row": -5,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 2,
+      "row": -4,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 2,
+      "row": -3,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 2,
+      "row": -2,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    },
+    {
+      "col": 2,
+      "row": -1,
+      "tileset": "Spaceship",
+      "tileIndex": 21
+    }
+  ]
 }

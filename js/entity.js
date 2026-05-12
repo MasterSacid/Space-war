@@ -1,12 +1,10 @@
 import { Coordinate, cellToKey, reconstructPath, manhattan, astar } from "./utils.js";
-import { MeleeAttackAction, MoveAction } from "./action.js";
-import { AnimationPlayer } from "./animation.js";
+import { ActionDescriptor, AreaAttackAction, MeleeAttackAction, MoveAction, RangedAttackAction, Skip } from "./action.js";
+import { eventSystem, EventSystem } from "./eventSystem.js";
 
-export class Entity {
-    constructor(center = new Coordinate(0, 0), name = "Empty", animationSet) {
-        if (!animationSet) {
-            throw new Error(`Entity "${name}" requires an AnimationSet`);
-        }
+export class Entity extends EventSystem {
+    constructor(center = new Coordinate(0, 0), name = "Empty") {
+        super();
 
         // Actions
         this.actionQueue = [];
@@ -20,18 +18,14 @@ export class Entity {
         this.dirty = true;
         this.dijkstraInfo = null;
         this.moving = false;
-        this.facing = 1;
-
-        // Animation
-        this.animator = new AnimationPlayer(animationSet, "idle");
 
         // Properties
         this.maxActionPoints = 3;
         this.maxHealth = 100;
         this.attackDamage = 20;
-        this.rangedDamage = 15;
-        this.areaDamage = 10;
-        this.areaDamageRadius = 1;
+        this.rangedDamage = 10;
+        this.areaDamage = 15;
+        this.areaDamageRadius = 2;
 
         this.attackSwing = 10;
         this.agility = 1;
@@ -47,9 +41,31 @@ export class Entity {
         this.health = this.maxHealth;
         this.hasTurn = false;
         this.showAura = false;
+        this.status = "alive"
 
         // Initial update
         this.update(0);
+
+        this.subscribe("gainTurn", ({ combat, map }) => this.takeAction(combat, map));
+    }
+
+    takeDamage(damage) {
+        this.health -= damage;
+
+        eventSystem.publish("entity:takeDamage", {
+            eventAction: "takeDamage",
+            health: this.health,
+            damage: damage
+        });
+
+        if (this.health <= 0) {
+            eventSystem.publish("entity:death", {
+                entity: this
+            });
+        }
+
+        this.publish("died", { entity: this });
+        this.color = "gray";
     }
 
     enqueueAction(action) {
@@ -120,16 +136,18 @@ export class Entity {
             }
         );
 
-        const healthRatio = this.health / this.maxHealth / 2;
-
         const closest = targets.extractMin();
 
-        console.log(this.name, 'calculating astar');
+        if (!closest) {
+            this.enqueueAction(new Skip(this));
+            return;
+        }
+
         map.appendCell(closest.cell.col, closest.cell.row, { occupied: false });
         const path = astar(this.cell, closest.cell, (cell) => map.getAdjacentCells(cell));
         map.appendCell(closest.cell.col, closest.cell.row, { occupied: true });
 
-        if (this.isCellIn(closest.cell, this.attackRange)) {
+        if ((this.isCellIn(closest.cell, this.attackRange) && this.actionPoints >= this.attackCost)) {
             this.enqueueAction(new MeleeAttackAction(this, closest));
         } else if (this.isCellInRange(closest.cell)) {
             path.pop();
@@ -151,6 +169,10 @@ export class Entity {
             }
         }
 
+        if (this.health <= 0) {
+            this.status = "dead";
+        }
+
         if (!this.moving) {
             const cell = { col: Math.floor(this.center.x / 64), row: Math.floor(this.center.y / 64) }
             if (!(this.cell.col == cell.col && this.cell.row == cell.row)) {
@@ -159,24 +181,14 @@ export class Entity {
                 this.dirty = true;
             }
         }
-
-        const head = this.actionQueue[0];
-        let state = "idle";
-        if (head instanceof MoveAction) {
-            state = "run";
-            if (head.lerping) {
-                const dx = head.lerpEnd.x - head.lerpStart.x;
-                if (dx !== 0) this.facing = Math.sign(dx);
-            }
-        } else if (head instanceof MeleeAttackAction) {
-            state = "attack";
-        }
-        this.animator.play(state);
-        this.animator.update(dt);
     }
 
     draw(canvas) {
         const ctx = canvas.getContext('2d');
+
+        if (this.health <= 0) {
+            this.color = "gray";
+        }
 
         ctx.save();
 
@@ -185,9 +197,8 @@ export class Entity {
             ctx.rotate(this.rotation);
             ctx.translate(-this.center.x, -this.center.y);
         }
-
-        this.animator.draw(ctx, this.center.x, this.center.y, 64, this.facing);
-
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.center.x - this.width / 2, this.center.y - this.height / 2, this.width, this.height);
         ctx.fillStyle = "black";
         ctx.fillText(this.name, this.center.x - this.width / 20 * this.name.length, this.center.y + this.width / 1.25, this.width);
         ctx.fillText(`${Math.ceil(this.center.x)}, ${Math.ceil(this.center.y)}`, this.center.x - this.width / 20 * this.name.length, this.center.y + this.width, this.width);
@@ -196,15 +207,124 @@ export class Entity {
     }
 }
 
-export class Player {
+
+export class RangedEntity extends Entity {
+    constructor(center = new Coordinate(0, 0), name = "Empty") {
+        super(center, name);
+        this.attackRange = 5;
+        this.attackCost = 1;
+    }
+    takeAction(combat, map) {
+        const targets = combat.filterEntitiesBy(
+            (a, b) => {
+                return manhattan(this.cell, a.cell) < manhattan(this.cell, b.cell);
+            },
+            (parties) => {
+                const array = [];
+                for (const [party, members] of parties) {
+                    if (party != this.party) {
+                        array.push(members);
+                    }
+                }
+                return array;
+            },
+            (filteredParties) => {
+                return [...filteredParties];
+            }
+        );
+
+        const healthRatio = this.health / this.maxHealth / 2;
+
+        const closest = targets.extractMin();
+
+        map.appendCell(closest.cell.col, closest.cell.row, { occupied: false });
+        const path = astar(this.cell, closest.cell, (cell) => map.getAdjacentCells(cell));
+        map.appendCell(closest.cell.col, closest.cell.row, { occupied: true });
+
+        if (this.isCellIn(closest.cell, this.attackRange)) {
+            if (this.actionPoints >= this.attackCost) {
+                this.enqueueAction(new RangedAttackAction(this, closest, 0.1, 400));
+            } else {
+                this.enqueueAction(new Skip(this));
+            }
+        } else if (this.isCellInRange(closest.cell)) {
+            path.pop();
+            if (path.length > 1) {
+                this.tracePath(path, map.cellSize);
+            }
+        } else {
+            this.tracePath(path, map.cellSize);
+        }
+    }
+}
+
+export class AreaDamagingEntity extends Entity {
+    constructor(center = new Coordinate(0, 0), name = "Empty") {
+        super(center, name);
+        this.maxActionPoints = 3;
+        this.attackRange = 6;
+        this.attackCost = 2;
+    }
+    takeAction(combat, map) {
+        const targets = combat.filterEntitiesBy(
+            (a, b) => {
+                return manhattan(this.cell, a.cell) < manhattan(this.cell, b.cell);
+            },
+            (parties) => {
+                const array = [];
+                for (const [party, members] of parties) {
+                    if (party != this.party) {
+                        array.push(members);
+                    }
+                }
+                return array;
+            },
+            (filteredParties) => {
+                return [...filteredParties];
+            }
+        );
+
+        const healthRatio = this.health / this.maxHealth / 2;
+
+        const closest = targets.extractMin();
+
+        map.appendCell(closest.cell.col, closest.cell.row, { occupied: false });
+        const path = astar(this.cell, closest.cell, (cell) => map.getAdjacentCells(cell));
+        map.appendCell(closest.cell.col, closest.cell.row, { occupied: true });
+
+        if (this.isCellIn(closest.cell, this.attackRange)) {
+            if (this.actionPoints >= this.attackCost) {
+                this.enqueueAction(new AreaAttackAction(this, closest, -0.1, 400, this.areaDamageRadius));
+            } else {
+                console.log(this.actionPoints);
+                this.enqueueAction(new Skip(this));
+            }
+        } else if (this.isCellInRange(closest.cell)) {
+            path.pop();
+            if (path.length > 1) {
+                this.tracePath(path, map.cellSize);
+            }
+        } else {
+            this.tracePath(path, map.cellSize);
+        }
+    }
+}
+
+export class Player extends EventSystem {
     constructor(canvas, entity = new Entity(new Coordinate(0, 0), "Player")) {
+        super();
         this.canvas = canvas;
         this.entity = entity;
         this.keys = {};
         this.enableKeyboardMovement = false;
-        this.hasPlayed = false;
+        this.hasTurn = true;
 
         this.#addEventListeners();
+
+        this.subscribe("move", ({ path, cellSize, apLimit }) => {
+            this.entity.tracePath(path, cellSize, apLimit);
+            this.hasTurn = false;
+        });
     }
 
     #addEventListeners() {
@@ -216,8 +336,5 @@ export class Player {
         // Key checks
         if (!this.keys) return;
         if (this.keys['a']) this.mode = "attack";
-        if (this.health < 0) {
-            this.color = "gray";
-        }
     }
 }
