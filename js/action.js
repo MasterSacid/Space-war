@@ -1,6 +1,7 @@
 import { Entity } from './entity.js';
 import { Coordinate, lerp, manhattan } from './utils.js';
 import { app } from './index.js';
+import { eventSystem } from './eventSystem.js';
 
 export class ActionDescriptor {
     constructor(action, color, title) {
@@ -93,6 +94,11 @@ export class MoveAction extends Action {
         this.lerpStart = this.entity.center.clone();
         this.lerpProgress = 0;
         this.lerping = true;
+
+        eventSystem.publish("entity:move", {
+            eventAction: "move",
+            entityName: this.name
+        });
     }
 
     update(dt) {
@@ -150,6 +156,10 @@ export class MeleeAttackAction extends Action {
         this.lerpEnd = endPos;
         this.lerping = true;
         this.lerpProgress = 0;
+        eventSystem.publish("entity:move", {
+            eventAction: "move",
+            entityName: this.name
+        });
     }
 
     moveBack() {
@@ -157,12 +167,19 @@ export class MeleeAttackAction extends Action {
         this.lerpEnd = this.startingPosition;
         this.lerping = true;
         this.lerpProgress = 0;
+        eventSystem.publish("entity:move", {
+            eventAction: "move",
+            entityName: this.name
+        });
     }
 
     dealDamage() {
         this.entity.actionPoints -= this.entity.attackCost;
         const damage = this.entity.getAttackDamage();
-        this.target.health -= damage;
+        this.target.takeDamage(damage);
+        eventSystem.publish("entity:meleeAttack", {
+            eventAction: "meleeAttack",
+        });
     }
 
     update(dt) {
@@ -230,7 +247,11 @@ export class RangedAttackAction extends Action {
         this.entity.actionPoints -= this.entity.attackCost;
         const damage = this.entity.getRangedDamage();
         this.target.health -= damage;
-        console.log(`${this.entity.name} has dealt ${damage} to ${this.target.name}`);
+
+        this.target.takeDamage(damage);
+        eventSystem.publish("entity:rangedAttack", {
+            eventAction: "rangedAttack",
+        });
     }
 
     updateLerpProjectile(dt) {
@@ -339,7 +360,10 @@ export class AreaAttackAction extends RangedAttackAction {
             const distance = manhattan(e.cell, this.impactCell);
 
             if (distance <= this.radius) {
-                e.health -= damage;
+                this.target.takeDamage(damage);
+                eventSystem.publish("entity:areaAttack", {
+                    eventAction: "areaAttack",
+                });
             }
         });
     }

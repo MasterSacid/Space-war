@@ -5,6 +5,7 @@ import { Bot, Combat } from "./combat.js";
 import { astar, Coordinate, screenToCell, sleep } from "./utils.js";
 import { Entity, Player, RangedEntity, AreaDamagingEntity } from "./entity.js";
 import { Graphics } from "./graphics.js";
+import { Sound } from "./sound.js";
 
 const entity = new Entity(new Coordinate(-96, 32), "Player");
 const wallofentities = Array.from({ length: 4 }, (_, i) => {
@@ -31,6 +32,8 @@ class App {
         this.cardPane = new CardPane(canvas);
         this.dialogPane = new dialogPane(canvas);
         this.map = new Grid(64, this.player);
+        this.sound = new Sound();
+
         this.graphics = new Graphics(this.canvas, this.player, this.map);
         this.bot = new Bot(wallofentities, this.map);
         this.combat = new Combat(this.player, [entity, ...wallofentities, areaEntity], this.map, this.bot);
@@ -84,13 +87,11 @@ class App {
                 return;
             }
 
-            if (this.player.entity.hasTurn) {
-                if (this.player.entity.isCellInReach(this.map.hoveredCell)) {
-                    const dijkstraPath = this.player.entity.getDijkstraPath(this.map.hoveredCell);
-                    this.player.entity.tracePath(dijkstraPath, this.map.cellSize, 0);
-                    this.player.hasPlayed = true;
-                }
+            if (this.player.entity.isCellInReach(this.map.hoveredCell)) {
+                const dijkstraPath = this.player.entity.getDijkstraPath(this.map.hoveredCell);
+                this.player.publish("move", { path: dijkstraPath, cellSize: this.map.cellSize, apLimit: 0 });
             }
+
         });
 
         //Mouse up handler.

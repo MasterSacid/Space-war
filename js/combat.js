@@ -1,4 +1,5 @@
 import { dijkstra, keyToCell, manhattan, Heap } from "./utils.js";
+import { eventSystem } from "./eventSystem.js";
 
 export class Combat {
     constructor(player, entities, grid, bot) {
@@ -15,6 +16,7 @@ export class Combat {
         this.activeEntity = null;
 
         for (const entity of this.entities) {
+            entity.subscribe("died", ({ entity }) => this.onDeath(entity));
             let list = this.parties.get(entity.party);
             if (!list) {
                 list = new Set();
@@ -23,6 +25,7 @@ export class Combat {
             list.add(entity);
         }
         this.startRound();
+        eventSystem.publish("combat:start", { eventAction: "combatStart" });
     }
 
     atRoundStart() {
@@ -32,10 +35,14 @@ export class Combat {
         for (const entity of this.entities) {
             entity.actionPoints = entity.maxActionPoints;
         }
+
+        eventSystem.publish("combat:roundStart", { eventAction: "roundStart", });
     }
 
     atRoundEnd() {
         this.roundActive = false;
+
+        eventSystem.publish("combat:roundEnd", { eventAction: "roundEnd", });
     }
 
     startRound() {
@@ -49,17 +56,10 @@ export class Combat {
                 }
             }
         }
-
         this.processNextTurn();
     }
 
     processNextTurn() {
-        for (const entity of [...this.entities]) {
-            if (entity.status === "incapacitated" || entity.status === "dead") {
-                this.onDeath(entity);
-            }
-        }
-
         if (!this.combatActive) return;
 
         if (this.turnQueue.length === 0) {
@@ -70,10 +70,10 @@ export class Combat {
 
         const { entity } = this.turnQueue.shift();
         this.activeEntity = entity;
-
-        if (entity.status === "incapacitated" || entity.status === "dead") {
-            this.processNextTurn();
-            return;
+        if (entity === this.player.entity) {
+            this.player.hasTurn = true;
+        } else {
+            entity.publish("gainTurn", { combat: this, map: this.map });
         }
 
         this.actionLoop(entity);
@@ -93,6 +93,9 @@ export class Combat {
         if (this.parties.size <= 1) {
             this.combatActive = false;
             console.log("Combat has ended.");
+            eventSystem.publish("combat:end", {
+                roundCount: this.roundCounter
+            });
         }
     }
 
@@ -119,26 +122,7 @@ export class Combat {
         return heap;
     }
 
-    update() {
-        if (this.combatActive) {
-            if (this.activeEntity.hasTurn == false) {
-                this.activeEntity.showAura = false;
-                this.activeEntity = null;
-                this.processNextTurn();
-            } else {
-                if (this.activeEntity.isIdle()) {
-                    if (this.activeEntity === this.player.entity) {
-                        if (this.player.hasPlayed) {
-                            this.actionLoop(this.activeEntity);
-                            this.player.hasPlayed = false;
-                        }
-                    } else {
-                        this.actionLoop(this.activeEntity);
-                    }
-                }
-            }
-        }
-    }
+    update() { }
 }
 
 export class Bot {

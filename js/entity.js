@@ -1,8 +1,11 @@
 import { Coordinate, cellToKey, reconstructPath, manhattan, astar } from "./utils.js";
 import { ActionDescriptor, AreaAttackAction, MeleeAttackAction, MoveAction, RangedAttackAction, Skip } from "./action.js";
+import { eventSystem, EventSystem } from "./eventSystem.js";
 
-export class Entity {
+export class Entity extends EventSystem {
     constructor(center = new Coordinate(0, 0), name = "Empty") {
+        super();
+
         // Actions
         this.actionQueue = [];
 
@@ -42,6 +45,27 @@ export class Entity {
 
         // Initial update
         this.update(0);
+
+        this.subscribe("gainTurn", ({ combat, map }) => this.takeAction(combat, map));
+    }
+
+    takeDamage(damage) {
+        this.health -= damage;
+
+        eventSystem.publish("entity:takeDamage", {
+            eventAction: "takeDamage",
+            health: this.health,
+            damage: damage
+        });
+
+        if (this.health <= 0) {
+            eventSystem.publish("entity:death", {
+                entity: this
+            });
+        }
+
+        this.publish("died", { entity: this });
+        this.color = "gray";
     }
 
     enqueueAction(action) {
@@ -114,12 +138,16 @@ export class Entity {
 
         const closest = targets.extractMin();
 
-        console.log(this.name, 'calculating astar');
+        if (!closest) {
+            this.enqueueAction(new Skip(this));
+            return;
+        }
+
         map.appendCell(closest.cell.col, closest.cell.row, { occupied: false });
         const path = astar(this.cell, closest.cell, (cell) => map.getAdjacentCells(cell));
         map.appendCell(closest.cell.col, closest.cell.row, { occupied: true });
 
-        if (this.isCellIn(closest.cell, this.attackRange && this.actionPoints >= this.attackCost)) {
+        if ((this.isCellIn(closest.cell, this.attackRange) && this.actionPoints >= this.attackCost)) {
             this.enqueueAction(new MeleeAttackAction(this, closest));
         } else if (this.isCellInRange(closest.cell)) {
             path.pop();
@@ -282,15 +310,21 @@ export class AreaDamagingEntity extends Entity {
     }
 }
 
-export class Player {
+export class Player extends EventSystem {
     constructor(canvas, entity = new Entity(new Coordinate(0, 0), "Player")) {
+        super();
         this.canvas = canvas;
         this.entity = entity;
         this.keys = {};
         this.enableKeyboardMovement = false;
-        this.hasPlayed = false;
+        this.hasTurn = true;
 
         this.#addEventListeners();
+
+        this.subscribe("move", ({ path, cellSize, apLimit }) => {
+            this.entity.tracePath(path, cellSize, apLimit);
+            this.hasTurn = false;
+        });
     }
 
     #addEventListeners() {
@@ -302,8 +336,5 @@ export class Player {
         // Key checks
         if (!this.keys) return;
         if (this.keys['a']) this.mode = "attack";
-        if (this.health < 0) {
-            this.color = "gray";
-        }
     }
 }
