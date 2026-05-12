@@ -5,10 +5,20 @@ import { Bot, Combat } from "./combat.js";
 import { astar, Coordinate, screenToCell, sleep } from "./utils.js";
 import { Entity, Player } from "./entity.js";
 import { Graphics } from "./graphics.js";
+import { AnimationSet } from "./animation.js";
 
-const entity = new Entity(new Coordinate(-96, 32), "Player");
+const bikerSet = new AnimationSet();
+bikerSet.addAnimation("idle", { imageUrl: "img/animations/Biker_idle.png", frameCount: 4 });
+bikerSet.addAnimation("run", { imageUrl: "img/animations/Biker_run.png", frameCount: 6 });
+
+const enemySet = new AnimationSet({ flipped: true });
+enemySet.addAnimation("idle", { imageUrl: "img/animations/Enemy_idle.png", frameCount: 4 });
+enemySet.addAnimation("attack", { imageUrl: "img/animations/Enemy_punch.png", frameCount: 3 });
+enemySet.addAnimation("run", { imageUrl: "img/animations/Enemy_run.png", frameCount: 4 });
+
+const entity = new Entity(new Coordinate(-96, 32), "Player", bikerSet);
 const wallofentities = Array.from({ length: 5 }, (_, i) => {
-    const wall = new Entity(new Coordinate(224, 160 - i * 64), "Wall " + (i + 1));
+    const wall = new Entity(new Coordinate(224, 160 - i * 64), "Wall " + (i + 1), enemySet);
     wall.party = "walls";
     return wall;
 });
@@ -180,6 +190,9 @@ class App {
 }
 
 const app = new App();
-app.start();
-app.ctx.save();
-requestAnimationFrame((time) => app.update(time));
+(async () => {
+    await Promise.all([bikerSet.ready(), enemySet.ready()]);
+    app.start();
+    app.ctx.save();
+    requestAnimationFrame((time) => app.update(time));
+})();

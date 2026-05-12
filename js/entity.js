@@ -1,8 +1,13 @@
 import { Coordinate, cellToKey, reconstructPath, manhattan, astar } from "./utils.js";
 import { MeleeAttackAction, MoveAction } from "./action.js";
+import { AnimationPlayer } from "./animation.js";
 
 export class Entity {
-    constructor(center = new Coordinate(0, 0), name = "Empty") {
+    constructor(center = new Coordinate(0, 0), name = "Empty", animationSet) {
+        if (!animationSet) {
+            throw new Error(`Entity "${name}" requires an AnimationSet`);
+        }
+
         // Actions
         this.actionQueue = [];
 
@@ -15,6 +20,10 @@ export class Entity {
         this.dirty = true;
         this.dijkstraInfo = null;
         this.moving = false;
+        this.facing = 1;
+
+        // Animation
+        this.animator = new AnimationPlayer(animationSet, "idle");
 
         // Properties
         this.maxActionPoints = 3;
@@ -150,14 +159,24 @@ export class Entity {
                 this.dirty = true;
             }
         }
+
+        const head = this.actionQueue[0];
+        let state = "idle";
+        if (head instanceof MoveAction) {
+            state = "run";
+            if (head.lerping) {
+                const dx = head.lerpEnd.x - head.lerpStart.x;
+                if (dx !== 0) this.facing = Math.sign(dx);
+            }
+        } else if (head instanceof MeleeAttackAction) {
+            state = "attack";
+        }
+        this.animator.play(state);
+        this.animator.update(dt);
     }
 
     draw(canvas) {
         const ctx = canvas.getContext('2d');
-
-        if (this.health <= 0) {
-            this.color = "gray";
-        }
 
         ctx.save();
 
@@ -166,8 +185,9 @@ export class Entity {
             ctx.rotate(this.rotation);
             ctx.translate(-this.center.x, -this.center.y);
         }
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.center.x - this.width / 2, this.center.y - this.height / 2, this.width, this.height);
+
+        this.animator.draw(ctx, this.center.x, this.center.y, 64, this.facing);
+
         ctx.fillStyle = "black";
         ctx.fillText(this.name, this.center.x - this.width / 20 * this.name.length, this.center.y + this.width / 1.25, this.width);
         ctx.fillText(`${Math.ceil(this.center.x)}, ${Math.ceil(this.center.y)}`, this.center.x - this.width / 20 * this.name.length, this.center.y + this.width, this.width);
