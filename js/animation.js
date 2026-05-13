@@ -1,3 +1,5 @@
+import { eventSystem } from "./eventSystem.js";
+
 export class AnimationSet {
     constructor({ flipped = false } = {}) {
         this.animations = {};
@@ -67,66 +69,118 @@ export class AnimationSet {
 }
 
 export class AnimationPlayer {
-    constructor(animationSet, initialState = "idle") {
-        this.set = animationSet;
-        this.requestedState = null;
-        this.state = null;
-        this.frameIndex = 0;
+    constructor(entity, animationSet, { defaultAnimation = "idle" } = {}) {
+        this.entity = entity;
+        this.animationSet = animationSet;
+        this.defaultAnimation = defaultAnimation;
+
+        this.currentName = defaultAnimation;
+        this.currentFrame = 0;
         this.elapsed = 0;
-        this.warnedMissing = new Set();
-        this.play(initialState);
+        this.loop = true;
+        this.onEnd = null;
+
+        this.subscriptions = [];
+
+        eventSystem.subscribe("entity:move", this.handleMove);
+        eventSystem.subscribe("entity:meleeAttack", this.handleMelee);
+        eventSystem.subscribe("entity:idle", this.handleIdle);
+
+        this.subscriptions.push(
+            ["entity:move", this.handleMove],
+            ["entity:meleeAttack", this.handleMelee],
+            ["entity:idle", this.handleIdle],
+        );
     }
 
-    play(stateName) {
-        if (this.requestedState === stateName) return;
-        this.requestedState = stateName;
+    handleMove = (data) => {
+        if (!data || data.entityName !== this.entity.name) return;
+        this.play("run", { loop: true });
+    };
 
-        let target = stateName;
-        if (!this.set.has(stateName)) {
-            if (!this.warnedMissing.has(stateName)) {
-                console.warn(`Animation "${stateName}" not in set; falling back to "idle"`);
-                this.warnedMissing.add(stateName);
-            }
-            target = "idle";
-        }
+    handleMelee = (data) => {
+        if (!data || data.entityName !== this.entity.name) return;
+        this.play("punch", {
+            loop: false,
+            onEnd: () => this.play(this.defaultAnimation, { loop: true }),
+        });
+    };
 
-        if (this.state === target) return;
-        this.state = target;
-        this.frameIndex = 0;
+    handleIdle = (data) => {
+        if (!data || data.entityName !== this.entity.name) return;
+        this.play(this.defaultAnimation, { loop: true });
+    };
+
+    play(name, { loop = true, onEnd = null } = {}) {
+        if (!this.animationSet.has(name)) return;
+        if (this.currentName === name && this.loop && loop) return;
+
+        this.currentName = name;
+        this.currentFrame = 0;
         this.elapsed = 0;
+        this.loop = loop;
+        this.onEnd = onEnd;
     }
 
     update(dt) {
-        const meta = this.set.getMeta(this.state);
+        const meta = this.animationSet.getMeta(this.currentName);
         if (!meta || !meta.loaded) return;
 
         this.elapsed += dt;
-        while (this.elapsed >= meta.frameDuration) {
-            this.elapsed -= meta.frameDuration;
-            this.frameIndex = (this.frameIndex + 1) % meta.frameCount;
+        const frameIndex = Math.floor(this.elapsed / meta.frameDuration);
+
+        if (this.loop) {
+            this.currentFrame = frameIndex % meta.frameCount;
+        } else if (frameIndex >= meta.frameCount) {
+            const onEnd = this.onEnd;
+            this.onEnd = null;
+            this.loop = true;
+            if (onEnd) onEnd();
+        } else {
+            this.currentFrame = frameIndex;
         }
     }
 
-    draw(ctx, centerX, centerY, cellSize, facing = 1) {
-        const frame = this.set.getFrame(this.state, this.frameIndex);
+    draw(ctx) {
+        const frame = this.animationSet.getFrame(this.currentName, this.currentFrame);
         if (!frame) return;
 
-        const scale = Math.min(cellSize / frame.sw, cellSize / frame.sh);
-        const drawW = frame.sw * scale;
-        const drawH = frame.sh * scale;
+        const dw = this.entity.width;
+        const dh = this.entity.height;
+        const dx = this.entity.center.x - dw / 2;
+        const dy = this.entity.center.y - dh / 2;
 
         ctx.save();
-        const mirror = (facing < 0) !== this.set.flipped;
-        if (mirror) {
-            ctx.translate(centerX, centerY);
+        if (this.animationSet.flipped) {
+            ctx.translate(this.entity.center.x, this.entity.center.y);
             ctx.scale(-1, 1);
-            ctx.translate(-centerX, -centerY);
+            ctx.translate(-this.entity.center.x, -this.entity.center.y);
         }
-        ctx.drawImage(
-            frame.image,
-            frame.sx, frame.sy, frame.sw, frame.sh,
-            centerX - drawW / 2, centerY - drawH / 2, drawW, drawH
-        );
+        ctx.drawImage(frame.image, frame.sx, frame.sy, frame.sw, frame.sh, dx, dy, dw, dh);
         ctx.restore();
     }
+
+    destroy() {
+        for (const [eventName, handler] of this.subscriptions) {
+            eventSystem.unsubscribe(eventName, handler);
+        }
+        this.subscriptions = [];
+    }
+}
+
+export function createAnimationCatalogue() {
+    //Object keys özelliği kullandığım için sonlarına mutlaka AnimationSet diye ekle, karışır yoksa kodlarken
+    const spaceGuy = new AnimationSet();
+    spaceGuy.addAnimation("idle", { imageUrl: "./img/animations/Biker_idle.png", frameCount: 4 });
+    spaceGuy.addAnimation("run",  { imageUrl: "./img/animations/Biker_run.png",  frameCount: 6 });
+
+    const streetBro = new AnimationSet();
+    streetBro.addAnimation("idle",  { imageUrl: "./img/animations/Enemy_idle.png",  frameCount: 4 });
+    streetBro.addAnimation("run",   { imageUrl: "./img/animations/Enemy_run.png",   frameCount: 4 });
+    streetBro.addAnimation("punch", { imageUrl: "./img/animations/Enemy_punch.png", frameCount: 3 });
+
+    return {
+        sets: { "SpaceGuy": spaceGuy, "StreetBro": streetBro },
+        ready: () => Promise.all([spaceGuy.ready(), streetBro.ready()]),
+    };
 }

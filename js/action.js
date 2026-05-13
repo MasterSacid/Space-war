@@ -55,6 +55,13 @@ class Action {
 
         if (finished && onComplete) onComplete();
     }
+
+    publishIdle() {
+        eventSystem.publish("entity:idle", {
+            eventAction: "idle",
+            entityName: this.entity.name
+        });
+    }
 }
 
 export class MoveAction extends Action {
@@ -86,6 +93,7 @@ export class MoveAction extends Action {
         this.active = false;
         this.pathIndex = 0;
         this.entity.moving = false;
+        this.publishIdle();
     }
 
     moveTo(targetCell) {
@@ -97,7 +105,7 @@ export class MoveAction extends Action {
 
         eventSystem.publish("entity:move", {
             eventAction: "move",
-            entityName: this.name
+            entityName: this.entity.name
         });
     }
 
@@ -147,6 +155,7 @@ export class MeleeAttackAction extends Action {
 
     end() {
         this.active = false;
+        this.publishIdle();
     }
 
     moveToTarget() {
@@ -158,7 +167,7 @@ export class MeleeAttackAction extends Action {
         this.lerpProgress = 0;
         eventSystem.publish("entity:move", {
             eventAction: "move",
-            entityName: this.name
+            entityName: this.entity.name
         });
     }
 
@@ -169,7 +178,7 @@ export class MeleeAttackAction extends Action {
         this.lerpProgress = 0;
         eventSystem.publish("entity:move", {
             eventAction: "move",
-            entityName: this.name
+            entityName: this.entity.name
         });
     }
 
@@ -179,6 +188,7 @@ export class MeleeAttackAction extends Action {
         this.target.takeDamage(damage);
         eventSystem.publish("entity:meleeAttack", {
             eventAction: "meleeAttack",
+            entityName: this.entity.name
         });
     }
 
@@ -274,6 +284,7 @@ export class RangedAttackAction extends Action {
 
     end() {
         this.active = false;
+        this.publishIdle();
     }
 
     moveBack() {

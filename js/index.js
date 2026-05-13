@@ -6,23 +6,38 @@ import { astar, Coordinate, screenToCell, sleep } from "./utils.js";
 import { Entity, Player, RangedEntity, AreaDamagingEntity } from "./entity.js";
 import { Graphics } from "./graphics.js";
 import { Sound } from "./sound.js";
+import { AnimationPlayer, createAnimationCatalogue } from "./animation.js";
 
-const entity = new Entity(new Coordinate(-96, 32), "Player");
+const animationCatalogue = createAnimationCatalogue();
+
+
+//Entity type Katalog içindeki ile bire bir eşleşmek zorunda!
+const spaceGuy = new Entity(new Coordinate(-96, 32), "Player","SpaceGuy");
+const spaceGuyAnim = new AnimationPlayer(spaceGuy, animationCatalogue.sets[spaceGuy.entityType]);
+
 const wallofentities = Array.from({ length: 4 }, (_, i) => {
     const wall = new Entity(new Coordinate(224, 288 - i * 64), "Wall " + (i + 1));
     wall.party = "enemies";
+    wall.entityType = "StreetBro";
     return wall;
 });
+const wallAnims = wallofentities.map((w) =>
+    new AnimationPlayer(w, animationCatalogue.sets[w.entityType])
+);
 
 const areaEntity = new AreaDamagingEntity(new Coordinate(-32 - 6 * 64, 32), "Area");
-areaEntity.party = "enemies"
+areaEntity.party = "enemies";
+areaEntity.entityType = "StreetBro";
+const areaAnim = new AnimationPlayer(areaEntity, animationCatalogue.sets[areaEntity.entityType]);
+
+const animationPlayers = [spaceGuyAnim, ...wallAnims, areaAnim];
 
 class App {
     start() {
         //initial setup
         this.canvas = document.getElementById('canvas');
         this.ctx = this.canvas.getContext('2d');
-        this.player = new Player(this.canvas, entity);
+        this.player = new Player(this.canvas, spaceGuy);
         this.viewport = new Viewport(this.canvas, this.player.entity.center);
         this.mainMenu = new MainMenu(canvas);
         this.spaceScene = new SpaceScene(canvas);
@@ -36,10 +51,11 @@ class App {
 
         this.graphics = new Graphics(this.canvas, this.player, this.map);
         this.bot = new Bot(wallofentities, this.map);
-        this.combat = new Combat(this.player, [entity, ...wallofentities, areaEntity], this.map, this.bot);
+        this.combat = new Combat(this.player, [spaceGuy, ...wallofentities, areaEntity], this.map, this.bot);
 
-        this.entities = [entity, ...wallofentities, areaEntity];
+        this.entities = [spaceGuy, ...wallofentities, areaEntity];
 
+        this.animationPlayers = animationPlayers;
         // Animation timer
         this.lastTime = 0;
 
@@ -101,7 +117,7 @@ class App {
             }
         });
 
-        this.map.trackedEntities = [entity, ...wallofentities, areaEntity];
+        this.map.trackedEntities = [spaceGuy, ...wallofentities, areaEntity];
         //this.canvas.style.cursor = 'none';
 
         //this.mainMenu.on();
@@ -134,6 +150,7 @@ class App {
         this.terminalPane.update(deltaTime);
 
         this.entities.forEach((e) => e.update(deltaTime));
+        this.animationPlayers.forEach((p) => p.update(deltaTime));
         this.player.update(deltaTime);
 
         this.map.update();
@@ -156,7 +173,7 @@ class App {
         if (!this.spaceScene.visible) {
             this.map.draw(this.ctx, this.viewport);
 
-            this.entities.forEach((e) => e.draw(this.canvas));
+            this.animationPlayers.forEach((p) => p.draw(this.ctx));
         }
 
         // keep the animation going by requesting another animation frame

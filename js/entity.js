@@ -3,7 +3,7 @@ import { ActionDescriptor, AreaAttackAction, MeleeAttackAction, MoveAction, Rang
 import { eventSystem, EventSystem } from "./eventSystem.js";
 
 export class Entity extends EventSystem {
-    constructor(center = new Coordinate(0, 0), name = "Empty") {
+    constructor(center = new Coordinate(0, 0), name = "Empty",entityType = "Empty") {
         super();
 
         // Actions
@@ -37,6 +37,7 @@ export class Entity extends EventSystem {
         // Combat info
         this.name = name;
         this.party = this.name;
+        this.entityType = entityType;
         this.actionPoints = 0;
         this.health = this.maxHealth;
         this.hasTurn = false;
