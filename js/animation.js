@@ -1,10 +1,11 @@
 import { eventSystem } from "./eventSystem.js";
 
 export class AnimationSet {
-    constructor({ flipped = false } = {}) {
+    constructor({ flipped = false, scale = 1 } = {}) {
         this.animations = {};
         this.pendingLoads = [];
         this.flipped = flipped;
+        this.scale = scale;
     }
     addAnimation(name, { imageUrl, frameCount, frameDuration = 0.125 }) {
         const image = new Image();
@@ -69,10 +70,11 @@ export class AnimationSet {
 }
 
 export class AnimationPlayer {
-    constructor(entity, animationSet, { defaultAnimation = "idle" } = {}) {
+    constructor(entity, animationSet, { defaultAnimation = "idle", cellSize } = {}) {
         this.entity = entity;
         this.animationSet = animationSet;
         this.defaultAnimation = defaultAnimation;
+        this.cellSize = cellSize;
 
         this.currentName = defaultAnimation;
         this.currentFrame = 0;
@@ -145,10 +147,12 @@ export class AnimationPlayer {
         const frame = this.animationSet.getFrame(this.currentName, this.currentFrame);
         if (!frame) return;
 
-        const dw = this.entity.width;
-        const dh = this.entity.height;
+        const scale = this.animationSet.scale;
+        const dw = this.entity.width * scale;
+        const dh = this.entity.height * scale;
         const dx = this.entity.center.x - dw / 2;
-        const dy = this.entity.center.y - dh / 2;
+        const cellBottom = this.entity.center.y + this.cellSize / 2;
+        const dy = cellBottom - dh;
 
         ctx.save();
         if (this.animationSet.flipped) {
@@ -174,13 +178,13 @@ export function createAnimationCatalogue() {
     spaceGuy.addAnimation("idle", { imageUrl: "./img/animations/Biker_idle.png", frameCount: 4 });
     spaceGuy.addAnimation("run",  { imageUrl: "./img/animations/Biker_run.png",  frameCount: 6 });
 
-    const streetBro = new AnimationSet();
+    const streetBro = new AnimationSet({scale:2});
     streetBro.addAnimation("idle",  { imageUrl: "./img/animations/Enemy_idle.png",  frameCount: 4 });
     streetBro.addAnimation("run",   { imageUrl: "./img/animations/Enemy_run.png",   frameCount: 4 });
     streetBro.addAnimation("punch", { imageUrl: "./img/animations/Enemy_punch.png", frameCount: 3 });
 
 
-    const wizard = new AnimationSet();
+    const wizard = new AnimationSet({ scale: 4.5 });
     wizard.addAnimation("idle",{imageUrl:"./img/animations/wizard_idle.png",  frameCount: 10 });
     wizard.addAnimation("run",{imageUrl:"./img/animations/wizard_run.png",  frameCount: 8 });
 

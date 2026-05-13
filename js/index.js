@@ -10,10 +10,11 @@ import { AnimationPlayer, createAnimationCatalogue } from "./animation.js";
 
 const animationCatalogue = createAnimationCatalogue();
 
+const CELL_SIZE = 64;
 
 //Entity type Katalog içindeki ile bire bir eşleşmek zorunda!
 const spaceGuy = new Entity(new Coordinate(-96, 32), "Player","Wizard");
-const spaceGuyAnim = new AnimationPlayer(spaceGuy, animationCatalogue.sets[spaceGuy.entityType]);
+const spaceGuyAnim = new AnimationPlayer(spaceGuy, animationCatalogue.sets[spaceGuy.entityType], { cellSize: CELL_SIZE });
 
 const wallofentities = Array.from({ length: 4 }, (_, i) => {
     const wall = new Entity(new Coordinate(224, 288 - i * 64), "Wall " + (i + 1));
@@ -22,13 +23,13 @@ const wallofentities = Array.from({ length: 4 }, (_, i) => {
     return wall;
 });
 const wallAnims = wallofentities.map((w) =>
-    new AnimationPlayer(w, animationCatalogue.sets[w.entityType])
+    new AnimationPlayer(w, animationCatalogue.sets[w.entityType], { cellSize: CELL_SIZE })
 );
 
 const areaEntity = new AreaDamagingEntity(new Coordinate(-32 - 6 * 64, 32), "Area");
 areaEntity.party = "enemies";
 areaEntity.entityType = "StreetBro";
-const areaAnim = new AnimationPlayer(areaEntity, animationCatalogue.sets[areaEntity.entityType]);
+const areaAnim = new AnimationPlayer(areaEntity, animationCatalogue.sets[areaEntity.entityType], { cellSize: CELL_SIZE });
 
 const animationPlayers = [spaceGuyAnim, ...wallAnims, areaAnim];
 
@@ -46,7 +47,7 @@ class App {
         this.terminalPane = new TerminalPane(canvas);
         this.cardPane = new CardPane(canvas);
         this.dialogPane = new dialogPane(canvas);
-        this.map = new Grid(64, this.player);
+        this.map = new Grid(CELL_SIZE, this.player);
         this.sound = new Sound();
 
         this.graphics = new Graphics(this.canvas, this.player, this.map);
