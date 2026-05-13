@@ -1,3 +1,5 @@
+const PALETTE_TILE_DISPLAY_SIZE = 32; // must match .tile-option width/height in index.html
+
 export class Tileset {
     constructor({ name, imageUrl, tileSize = 32, tilesPerRow = 10 }) {
         this.name = name;
@@ -165,9 +167,10 @@ export class TilePalette {
                 button.type = "button";
                 button.className = "tile-option";
                 button.title = `${tileset.name} #${i}`;
+                const scale = PALETTE_TILE_DISPLAY_SIZE / tileset.tileSize;
                 button.style.backgroundImage = `url("${tileset.imageUrl}")`;
-                button.style.backgroundPosition = `-${sx}px -${sy}px`;
-                button.style.backgroundSize = `${tileset.image.naturalWidth}px ${tileset.image.naturalHeight}px`;
+                button.style.backgroundPosition = `-${sx * scale}px -${sy * scale}px`;
+                button.style.backgroundSize = `${tileset.image.naturalWidth * scale}px ${tileset.image.naturalHeight * scale}px`;
                 button.addEventListener("click", () => {
                     this.select(button, selection);
                 });
