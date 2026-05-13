@@ -179,8 +179,13 @@ export function createAnimationCatalogue() {
     streetBro.addAnimation("run",   { imageUrl: "./img/animations/Enemy_run.png",   frameCount: 4 });
     streetBro.addAnimation("punch", { imageUrl: "./img/animations/Enemy_punch.png", frameCount: 3 });
 
+
+    const wizard = new AnimationSet();
+    wizard.addAnimation("idle",{imageUrl:"./img/animations/wizard_idle.png",  frameCount: 10 });
+    wizard.addAnimation("run",{imageUrl:"./img/animations/wizard_run.png",  frameCount: 8 });
+
     return {
-        sets: { "SpaceGuy": spaceGuy, "StreetBro": streetBro },
-        ready: () => Promise.all([spaceGuy.ready(), streetBro.ready()]),
+        sets: { "SpaceGuy": spaceGuy, "StreetBro": streetBro, "Wizard": wizard },
+        ready: () => Promise.all([spaceGuy.ready(), streetBro.ready(),wizard.ready()]),
     };
 }

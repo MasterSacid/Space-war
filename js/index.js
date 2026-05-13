@@ -12,7 +12,7 @@ const animationCatalogue = createAnimationCatalogue();
 
 
 //Entity type Katalog içindeki ile bire bir eşleşmek zorunda!
-const spaceGuy = new Entity(new Coordinate(-96, 32), "Player","SpaceGuy");
+const spaceGuy = new Entity(new Coordinate(-96, 32), "Player","Wizard");
 const spaceGuyAnim = new AnimationPlayer(spaceGuy, animationCatalogue.sets[spaceGuy.entityType]);
 
 const wallofentities = Array.from({ length: 4 }, (_, i) => {
