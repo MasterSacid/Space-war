@@ -49,6 +49,12 @@ export class Graphics {
                 imageUrl: new URL("../img/spaceship.png", import.meta.url).href,
                 tileSize: 32,
                 tilesPerRow: 10
+            }),
+            new Tileset({
+                name: "Grass",
+                imageUrl: new URL("../img/grass.png", import.meta.url).href,
+                tileSize: 16,
+                tilesPerRow: 25
             })
         ];
         this.tilesetsByName = new Map(tilesets.map((tileset) => [tileset.name, tileset]));
