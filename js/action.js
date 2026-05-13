@@ -99,13 +99,18 @@ export class MoveAction extends Action {
     moveTo(targetCell) {
         this.lerpEnd.x = targetCell.col * this.cellSize + this.cellSize / 2;
         this.lerpEnd.y = targetCell.row * this.cellSize + this.cellSize / 2;
+        this.entity.faceToward(this.lerpEnd.x);
         this.lerpStart = this.entity.center.clone();
         this.lerpProgress = 0;
         this.lerping = true;
 
         eventSystem.publish("entity:move", {
             eventAction: "move",
-            entityName: this.entity.name
+            entityName: this.entity.name,
+            direction: {
+                x: Math.sign(this.lerpEnd.x - this.lerpStart.x),
+                y: Math.sign(this.lerpEnd.y - this.lerpStart.y)
+            }
         });
     }
 
@@ -161,13 +166,18 @@ export class MeleeAttackAction extends Action {
     moveToTarget() {
         const dist = { x: (this.entity.center.x - this.target.center.x) * 0.5, y: (this.entity.center.y - this.target.center.y) * 0.5 };
         const endPos = { x: this.target.center.x + dist.x, y: this.target.center.y + dist.y };
+        this.entity.faceToward(this.target.center.x);
         this.lerpStart = this.entity.center.clone();
         this.lerpEnd = endPos;
         this.lerping = true;
         this.lerpProgress = 0;
         eventSystem.publish("entity:move", {
             eventAction: "move",
-            entityName: this.entity.name
+            entityName: this.entity.name,
+            direction: {
+                x: Math.sign(this.lerpEnd.x - this.lerpStart.x),
+                y: Math.sign(this.lerpEnd.y - this.lerpStart.y)
+            }
         });
     }
 
@@ -178,7 +188,11 @@ export class MeleeAttackAction extends Action {
         this.lerpProgress = 0;
         eventSystem.publish("entity:move", {
             eventAction: "move",
-            entityName: this.entity.name
+            entityName: this.entity.name,
+            direction: {
+                x: Math.sign(this.lerpEnd.x - this.lerpStart.x),
+                y: Math.sign(this.lerpEnd.y - this.lerpStart.y)
+            }
         });
     }
 

@@ -154,8 +154,11 @@ export class AnimationPlayer {
         const cellBottom = this.entity.center.y + this.cellSize / 2;
         const dy = cellBottom - dh;
 
+        const facingLeft = (this.entity.facing ?? 1) < 0;
+        const shouldFlip = this.animationSet.flipped !== facingLeft;
+
         ctx.save();
-        if (this.animationSet.flipped) {
+        if (shouldFlip) {
             ctx.translate(this.entity.center.x, this.entity.center.y);
             ctx.scale(-1, 1);
             ctx.translate(-this.entity.center.x, -this.entity.center.y);

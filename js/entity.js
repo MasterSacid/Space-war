@@ -18,6 +18,7 @@ export class Entity extends EventSystem {
         this.dirty = true;
         this.dijkstraInfo = null;
         this.moving = false;
+        this.facing = 1;
 
         // Properties
         this.maxActionPoints = 3;
@@ -48,6 +49,12 @@ export class Entity extends EventSystem {
         this.update(0);
 
         this.subscribe("gainTurn", ({ combat, map }) => this.takeAction(combat, map));
+    }
+
+    faceToward(targetX) {
+        const dx = targetX - this.center.x;
+        if (dx === 0) return;
+        this.facing = dx < 0 ? -1 : 1;
     }
 
     takeDamage(damage) {
