@@ -19,7 +19,7 @@ const spaceGuyAnim = new AnimationPlayer(spaceGuy, animationCatalogue.sets[space
 const wallofentities = Array.from({ length: 4 }, (_, i) => {
     const wall = new Entity(new Coordinate(224, 288 - i * 64), "Wall " + (i + 1));
     wall.party = "enemies";
-    wall.entityType = "StreetBro";
+    wall.entityType = "Wizard";
     return wall;
 });
 const wallAnims = wallofentities.map((w) =>
@@ -174,7 +174,11 @@ class App {
         if (!this.spaceScene.visible) {
             this.map.draw(this.ctx, this.viewport);
 
-            this.animationPlayers.forEach((p) => p.draw(this.ctx));
+            //Painters algorithm for animations
+            this.animationPlayers
+                .slice()
+                .sort((a, b) => a.entity.center.y - b.entity.center.y)
+                .forEach((p) => p.draw(this.ctx));
         }
 
         // keep the animation going by requesting another animation frame
