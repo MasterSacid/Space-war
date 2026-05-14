@@ -176,23 +176,64 @@ export class AnimationPlayer {
 }
 
 export function createAnimationCatalogue() {
-    //Object keys özelliği kullandığım için sonlarına mutlaka AnimationSet diye ekle, karışır yoksa kodlarken
-    const spaceGuy = new AnimationSet();
-    spaceGuy.addAnimation("idle", { imageUrl: "./img/animations/Biker_idle.png", frameCount: 4 });
-    spaceGuy.addAnimation("run",  { imageUrl: "./img/animations/Biker_run.png",  frameCount: 6 });
 
-    const streetBro = new AnimationSet({scale:2});
-    streetBro.addAnimation("idle",  { imageUrl: "./img/animations/Enemy_idle.png",  frameCount: 4 });
-    streetBro.addAnimation("run",   { imageUrl: "./img/animations/Enemy_run.png",   frameCount: 4 });
-    streetBro.addAnimation("punch", { imageUrl: "./img/animations/Enemy_punch.png", frameCount: 3 });
+    const bloodWizard = new AnimationSet({ flipped:false, scale: 4.5 });
+    bloodWizard.addAnimation("idle",{imageUrl:"./animations/charachters/blood_wizard/wizard_idle.png",  frameCount: 10 });
+    bloodWizard.addAnimation("run",{imageUrl:"./animations/charachters/blood_wizard/wizard_run.png",  frameCount: 8 });
+    bloodWizard.addAnimation("attack",{imageUrl:"./animations/charachters/blood_wizard/wizard_attack.png",  frameCount: 13 });
+    bloodWizard.addAnimation("death",{imageUrl:"./animations/charachters/blood_wizard/wizard_death.png",  frameCount: 18 });
+    bloodWizard.addAnimation("hurt",{imageUrl:"./animations/charachters/blood_wizard/wizard_hurt.png",  frameCount: 3 });
+
+    const skeleton = new AnimationSet({ flipped:false, scale: 2.3 });
+    skeleton.addAnimation("idle",{imageUrl:"./animations/charachters/skeleton/skeleton_idle.png",  frameCount: 8 });
+    skeleton.addAnimation("run",{imageUrl:"./animations/charachters/skeleton/skeleton_walk.png",  frameCount: 10 });
+    skeleton.addAnimation("attack",{imageUrl:"./animations/charachters/skeleton/skeleton_attack.png",  frameCount: 10 });
+    skeleton.addAnimation("death",{imageUrl:"./animations/charachters/skeleton/skeleton_die.png",  frameCount: 13 });
+    skeleton.addAnimation("hurt",{imageUrl:"./animations/charachters/skeleton/skeleton_hurt.png",  frameCount: 5 });
+
+    const slime = new AnimationSet({ flipped:false, scale: 5 });
+    slime.addAnimation("idle",{imageUrl:"./animations/charachters/slime/slime_idle.png",  frameCount: 6 });
+    slime.addAnimation("run",{imageUrl:"./animations/charachters/slime/slime_run.png",  frameCount: 8 });
+    slime.addAnimation("attack",{imageUrl:"./animations/charachters/slime/slime_attack.png",  frameCount: 8 });
+    slime.addAnimation("death",{imageUrl:"./animations/charachters/slime/slime_death.png",  frameCount: 10 });
+    slime.addAnimation("hurt",{imageUrl:"./animations/charachters/slime/slime_hurt.png",  frameCount: 4 });
+
+    const cyborg = new AnimationSet({ flipped:false, scale: 1.8 });
+    cyborg.addAnimation("idle",{imageUrl:"./animations/charachters/cyborg/cyborg_idle.png",  frameCount: 4 });
+    cyborg.addAnimation("run",{imageUrl:"./animations/charachters/cyborg/cyborg_run.png",  frameCount: 6 });
+    cyborg.addAnimation("attack",{imageUrl:"./animations/charachters/cyborg/cyborg_attack.png",  frameCount: 6 });    cyborg.addAnimation("death",{imageUrl:"./animations/charachters/cyborg/cyborg_death.png",  frameCount: 6 });
+    cyborg.addAnimation("hurt",{imageUrl:"./animations/charachters/cyborg/cyborg_hurt.png",  frameCount: 2 });
+
+    const spearwoman = new AnimationSet({ flipped:false, scale: 3.8 });
+    spearwoman.addAnimation("attack",{imageUrl:"./animations/charachters/spearwoman/woman_attack.png",  frameCount: 22 ,frameDuration:0.08});
+    spearwoman.addAnimation("idle",{imageUrl:"./animations/charachters/spearwoman/woman_idle.png",  frameCount: 8});
+    spearwoman.addAnimation("run",{imageUrl:"./animations/charachters/spearwoman/woman_run.png",  frameCount: 8});
+    spearwoman.addAnimation("death",{imageUrl:"./animations/charachters/spearwoman/woman_death.png",  frameCount: 9});
+    spearwoman.addAnimation("hurt",{imageUrl:"./animations/charachters/spearwoman/woman_hurt.png",  frameCount: 4});
+
+    const magician = new AnimationSet({ flipped:false, scale: 3 });
+    magician.addAnimation("idle",{imageUrl:"./animations/charachters/magician/magician_idle.png",frameCount: 8 });
+    magician.addAnimation("attack",{imageUrl:"./animations/charachters/magician/magician_attack.png",frameCount: 7,frameDuration:0.08 });
+    magician.addAnimation("death",{imageUrl:"./animations/charachters/magician/magician_death.png",frameCount: 4 });
+    magician.addAnimation("hurt",{imageUrl:"./animations/charachters/magician/magician_hurt.png",frameCount: 4 });
+    magician.addAnimation("run",{imageUrl:"./animations/charachters/magician/magician_run.png",frameCount: 8 });
 
 
-    const wizard = new AnimationSet({ scale: 4.5 });
-    wizard.addAnimation("idle",{imageUrl:"./img/animations/wizard_idle.png",  frameCount: 10 });
-    wizard.addAnimation("run",{imageUrl:"./img/animations/wizard_run.png",  frameCount: 8 });
 
     return {
-        sets: { "SpaceGuy": spaceGuy, "StreetBro": streetBro, "Wizard": wizard },
-        ready: () => Promise.all([spaceGuy.ready(), streetBro.ready(),wizard.ready()]),
+        sets: {"BloodWizard": bloodWizard,
+            "Skeleton": skeleton,
+            "Slime": slime,
+            "Cyborg": cyborg,
+            "SpearWoman": spearwoman,
+            "Magician": magician},
+        ready: () => Promise.all(
+            [bloodWizard.ready(),
+                skeleton.ready(),
+                slime.ready(),
+                cyborg.ready(),
+                spearwoman.ready(),
+                magician.ready()
+            ]),
     };
 }

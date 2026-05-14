@@ -13,13 +13,12 @@ const animationCatalogue = createAnimationCatalogue();
 const CELL_SIZE = 64;
 
 //Entity type Katalog içindeki ile bire bir eşleşmek zorunda!
-const spaceGuy = new Entity(new Coordinate(-96, 32), "Player","Wizard");
+const spaceGuy = new Entity(new Coordinate(-96, 32), "Player","Magician");
 const spaceGuyAnim = new AnimationPlayer(spaceGuy, animationCatalogue.sets[spaceGuy.entityType], { cellSize: CELL_SIZE });
 
 const wallofentities = Array.from({ length: 4 }, (_, i) => {
-    const wall = new Entity(new Coordinate(224, 288 - i * 64), "Wall " + (i + 1));
+    const wall = new Entity(new Coordinate(224, 288 - i * 64), "Wall " + (i + 1), "BloodWizard", true);
     wall.party = "enemies";
-    wall.entityType = "Wizard";
     return wall;
 });
 const wallAnims = wallofentities.map((w) =>
@@ -28,7 +27,7 @@ const wallAnims = wallofentities.map((w) =>
 
 const areaEntity = new AreaDamagingEntity(new Coordinate(-32 - 6 * 64, 32), "Area");
 areaEntity.party = "enemies";
-areaEntity.entityType = "StreetBro";
+areaEntity.entityType = "BloodWizard";
 const areaAnim = new AnimationPlayer(areaEntity, animationCatalogue.sets[areaEntity.entityType], { cellSize: CELL_SIZE });
 
 const animationPlayers = [spaceGuyAnim, ...wallAnims, areaAnim];

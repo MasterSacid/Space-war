@@ -3,7 +3,7 @@ import { ActionDescriptor, AreaAttackAction, MeleeAttackAction, MoveAction, Rang
 import { eventSystem, EventSystem } from "./eventSystem.js";
 
 export class Entity extends EventSystem {
-    constructor(center = new Coordinate(0, 0), name = "Empty",entityType = "Empty") {
+    constructor(center = new Coordinate(0, 0), name = "Empty", entityType = "Empty", facingLeft = false) {
         super();
 
         // Actions
@@ -18,7 +18,7 @@ export class Entity extends EventSystem {
         this.dirty = true;
         this.dijkstraInfo = null;
         this.moving = false;
-        this.facing = 1;
+        this.facing = facingLeft ? -1 : 1;
 
         // Properties
         this.maxActionPoints = 3;
@@ -217,8 +217,8 @@ export class Entity extends EventSystem {
 
 
 export class RangedEntity extends Entity {
-    constructor(center = new Coordinate(0, 0), name = "Empty") {
-        super(center, name);
+    constructor(center = new Coordinate(0, 0), name = "Empty", entityType = "Empty", facingLeft = false) {
+        super(center, name, entityType, facingLeft);
         this.attackRange = 5;
         this.attackCost = 1;
     }
@@ -267,8 +267,8 @@ export class RangedEntity extends Entity {
 }
 
 export class AreaDamagingEntity extends Entity {
-    constructor(center = new Coordinate(0, 0), name = "Empty") {
-        super(center, name);
+    constructor(center = new Coordinate(0, 0), name = "Empty", entityType = "Empty", facingLeft = false) {
+        super(center, name, entityType, facingLeft);
         this.maxActionPoints = 3;
         this.attackRange = 6;
         this.attackCost = 2;
