@@ -4,7 +4,7 @@ import { eventSystem, EventSystem } from "./eventSystem.js";
 import { app } from "./index.js";
 
 export class Entity extends EventSystem {
-    constructor(center = new Coordinate(0, 0), name = "Empty") {
+    constructor(center = new Coordinate(0, 0), name = "Empty", entityType = "Empty", facingLeft = false) {
         super();
 
         this.showName = true;
@@ -21,6 +21,7 @@ export class Entity extends EventSystem {
         this.color = "red";
         this.dijkstraInfo = new Set();
         this.moving = false;
+        this.facing = facingLeft ? -1 : 1;
 
         // Core Properties
         this.maxActionPoints = 3;
@@ -31,6 +32,7 @@ export class Entity extends EventSystem {
         // Combat info
         this.name = name;
         this.party = this.name;
+        this.entityType = entityType;
         this.actionPoints = 0;
         this.health = this.maxHealth;
         this.hasTurn = false;
@@ -65,6 +67,12 @@ export class Entity extends EventSystem {
     heal(amount) {
         this.health = Math.min(this.maxHealth, this.health + amount);
         eventSystem.publish("entity:heal", { amount: amount })
+    }
+
+    faceToward(targetX) {
+        const dx = targetX - this.center.x;
+        if (dx === 0) return;
+        this.facing = dx < 0 ? -1 : 1;
     }
 
     takeDamage(damage) {
@@ -193,8 +201,8 @@ export class Entity extends EventSystem {
 }
 
 export class RangedEntity extends Entity {
-    constructor(center = new Coordinate(0, 0), name = "Empty") {
-        super(center, name);
+    constructor(center = new Coordinate(0, 0), name = "Empty", entityType = "Empty", facingLeft = false) {
+        super(center, name, entityType, facingLeft);
         this.ability = {
             name: "rangedAttack",
             args: { cost: 1, range: 5, damage: 10, swing: 8, kickback: 0.1, speed: 400 }
@@ -259,8 +267,8 @@ export class RangedEntity extends Entity {
 
 
 export class AreaDamagingEntity extends Entity {
-    constructor(center = new Coordinate(0, 0), name = "Empty") {
-        super(center, name);
+    constructor(center = new Coordinate(0, 0), name = "Empty", entityType = "Empty", facingLeft = false) {
+        super(center, name, entityType, facingLeft);
         this.maxActionPoints = 3;
         this.ability = {
             name: "areaAttack",

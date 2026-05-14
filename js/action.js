@@ -47,6 +47,13 @@ class Action {
 
         if (finished && onComplete) onComplete();
     }
+
+    publishIdle() {
+        eventSystem.publish("entity:idle", {
+            eventAction: "idle",
+            entityName: this.entity.name
+        });
+    }
 }
 
 export class Skip extends Action {
@@ -105,18 +112,25 @@ export class MoveAction extends Action {
         this.pathIndex = 0;
         this.entity.moving = false;
         this.entity.publish("action:end", { entity: this.entity });
+
+        this.publishIdle();
     }
 
     moveTo(targetCell) {
         this.lerpEnd.x = targetCell.col * this.cellSize + this.cellSize / 2;
         this.lerpEnd.y = targetCell.row * this.cellSize + this.cellSize / 2;
+        this.entity.faceToward(this.lerpEnd.x);
         this.lerpStart = this.entity.center.clone();
         this.lerpProgress = 0;
         this.lerping = true;
 
         eventSystem.publish("entity:move", {
             eventAction: "move",
-            entityName: this.name
+            entityName: this.entity.name,
+            direction: {
+                x: Math.sign(this.lerpEnd.x - this.lerpStart.x),
+                y: Math.sign(this.lerpEnd.y - this.lerpStart.y)
+            }
         });
 
         this.entity.publish("move:start", {});
@@ -190,18 +204,24 @@ export class MeleeAttackAction extends Action {
     end() {
         this.active = false;
         this.entity.publish("action:end", { entity: this.entity });
+        this.publishIdle();
     }
 
     moveToTarget() {
         const dist = { x: (this.entity.center.x - this.target.center.x) * 0.5, y: (this.entity.center.y - this.target.center.y) * 0.5 };
         const endPos = { x: this.target.center.x + dist.x, y: this.target.center.y + dist.y };
+        this.entity.faceToward(this.target.center.x);
         this.lerpStart = this.entity.center.clone();
         this.lerpEnd = endPos;
         this.lerping = true;
         this.lerpProgress = 0;
         eventSystem.publish("entity:move", {
             eventAction: "move",
-            entityName: this.name
+            entityName: this.entity.name,
+            direction: {
+                x: Math.sign(this.lerpEnd.x - this.lerpStart.x),
+                y: Math.sign(this.lerpEnd.y - this.lerpStart.y)
+            }
         });
     }
 
@@ -212,7 +232,11 @@ export class MeleeAttackAction extends Action {
         this.lerpProgress = 0;
         eventSystem.publish("entity:move", {
             eventAction: "move",
-            entityName: this.name
+            entityName: this.entity.name,
+            direction: {
+                x: Math.sign(this.lerpEnd.x - this.lerpStart.x),
+                y: Math.sign(this.lerpEnd.y - this.lerpStart.y)
+            }
         });
     }
 
@@ -220,7 +244,10 @@ export class MeleeAttackAction extends Action {
         this.entity.actionPoints -= this.args.cost;
         const damage = this.args.damage + Math.round(Math.random() * this.args.swing);
         this.target.takeDamage(damage);
-        eventSystem.publish("entity:meleeAttack", { eventAction: "meleeAttack" });
+        eventSystem.publish("entity:meleeAttack", {
+            eventAction: "meleeAttack",
+            entityName: this.entity.name
+        });
     }
 
     update(dt) {
@@ -333,6 +360,16 @@ export class RangedAttackAction extends Action {
         const t = this.lerperProjectile(this.projectileLerpingProgress);
         this.projectile.center.x = lerp(this.projectileLerpStart.x, this.projectileLerpEnd.x, t);
         this.projectile.center.y = lerp(this.projectileLerpStart.y, this.projectileLerpEnd.y, t);
+    }
+
+    start() {
+        this.active = true;
+        this.moveBack();
+    }
+
+    end() {
+        this.active = false;
+        this.publishIdle();
     }
 
     moveBack() {

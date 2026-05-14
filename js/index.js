@@ -6,24 +6,38 @@ import { astar, Coordinate, screenToCell, sleep } from "./utils.js";
 import { Entity, Player, RangedEntity, AreaDamagingEntity, PlayableEntity } from "./entity.js";
 import { Graphics } from "./graphics.js";
 import { Sound } from "./sound.js";
+import { AnimationPlayer, createAnimationCatalogue } from "./animation.js";
+
+const animationCatalogue = createAnimationCatalogue();
+
+const CELL_SIZE = 64;
 
 const captain = new PlayableEntity(new Coordinate(-96, 32), "Captain");
 captain.party = "goodguysparty";
+captain.entityType = "Cyborg";
+const captainAnim = new AnimationPlayer(captain, animationCatalogue.sets[captain.entityType], { cellSize: CELL_SIZE });
 
-const wizard = new PlayableEntity(new Coordinate(-32, 32), "Weizardo");
-wizard.party = "goodguysparty";
+const magician = new PlayableEntity(new Coordinate(-32, 32), "Weizardo");
+magician.party = "goodguysparty";
+magician.entityType = "Magician";
+const magicianAnim = new AnimationPlayer(magician, animationCatalogue.sets[magician.entityType], { cellSize: CELL_SIZE });
 
 const woman = new PlayableEntity(new Coordinate(32, 32), "Random Woman");
 woman.party = "goodguysparty";
+woman.entityType = "SpearWoman";
+const womanAnim = new AnimationPlayer(woman, animationCatalogue.sets[woman.entityType], { cellSize: CELL_SIZE });
 
 const meleeEntity = new Entity(new Coordinate(-32 - 4 * 64, 32), "Melee");
+meleeEntity.entityType = "Skeleton";
 meleeEntity.party = "enemies"
-
-const areaEntity = new AreaDamagingEntity(new Coordinate(-32 - 6 * 64, 32), "Area");
-areaEntity.party = "enemies"
+const meleeEntityAnim = new AnimationPlayer(meleeEntity, animationCatalogue.sets[meleeEntity.entityType], { cellSize: CELL_SIZE });
 
 const rangedEntity = new AreaDamagingEntity(new Coordinate(-32 - 5 * 64, 32), "Ranged");
-rangedEntity.party = "enemies"
+rangedEntity.party = "enemies";
+rangedEntity.entityType = "BloodWizard";
+const rangedEntityAnim = new AnimationPlayer(rangedEntity, animationCatalogue.sets[rangedEntity.entityType], { cellSize: CELL_SIZE });
+
+
 
 class App {
     start() {
@@ -37,16 +51,17 @@ class App {
         this.terminalPane = new TerminalPane(canvas);
         this.cardPane = new CardPane(canvas);
         this.dialogPane = new dialogPane(canvas);
+        this.animationPlayers = [captainAnim, magicianAnim, womanAnim, meleeEntityAnim, rangedEntityAnim];
 
         this.viewport = new Viewport(this.canvas, captain.center);
         this.player = new Player(this.canvas, captain, this.viewport);
-        this.map = new Grid(64, this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity]);
+        this.map = new Grid(CELL_SIZE, this.player, [captain, magician, woman, meleeEntity, rangedEntity]);
 
         this.sound = new Sound();
         this.graphics = new Graphics(this.canvas, this.player, this.map);
 
-        this.combat = new Combat(this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity], this.map);
-        this.entities = [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity];
+        this.combat = new Combat(this.player, [captain, magician, woman, meleeEntity, rangedEntity], this.map);
+        this.entities = [captain, magician, woman, meleeEntity, rangedEntity];
 
         // Animation timer
         this.lastTime = 0;
@@ -172,7 +187,11 @@ class App {
         if (!this.spaceScene.visible) {
             this.map.draw(this.ctx, this.viewport);
 
-            this.entities.forEach((e) => e.draw(this.canvas));
+            //Painters algorithm for animations
+            this.animationPlayers
+                .slice()
+                .sort((a, b) => a.entity.center.y - b.entity.center.y)
+                .forEach((p) => p.draw(this.ctx));
         }
 
         // keep the animation going by requesting another animation frame

@@ -16,7 +16,7 @@ export class EventSystem {
 
     publish(eventName, ...args) {
         const listeners = this.events.get(eventName);
-        if (!listeners) return;
+        if(!listeners) return;
         for (const callback of [...listeners]) {
             callback(...args);
         }
