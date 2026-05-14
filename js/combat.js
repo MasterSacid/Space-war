@@ -2,10 +2,9 @@ import { dijkstra, keyToCell, manhattan, Heap } from "./utils.js";
 import { eventSystem } from "./eventSystem.js";
 
 export class Combat {
-    constructor(player, entities, grid, bot) {
+    constructor(player, entities, grid) {
         this.player = player;
         this.map = grid;
-        this.bot = bot;
 
         this.entities = new Set(entities);
         this.parties = new Map();
@@ -15,8 +14,21 @@ export class Combat {
         this.combatActive = true;
         this.activeEntity = null;
 
+        this.turnQueue = [];
+
+        this.playersParty = this.player.entity.party;
+
         for (const entity of this.entities) {
             entity.subscribe("died", ({ entity }) => this.onDeath(entity));
+
+            entity.subscribe("action:end", ({ entity }) => {
+                if (entity.actionPoints > 0) {
+                    this.actionLoop();
+                } else {
+                    this.processNextTurn();
+                }
+            });
+
             let list = this.parties.get(entity.party);
             if (!list) {
                 list = new Set();
@@ -24,25 +36,20 @@ export class Combat {
             }
             list.add(entity);
         }
+
         this.startRound();
+
         eventSystem.publish("combat:start", { eventAction: "combatStart" });
-    }
 
-    atRoundStart() {
-        this.roundCounter++;
-        this.roundActive = true;
-
-        for (const entity of this.entities) {
-            entity.actionPoints = entity.maxActionPoints;
-        }
-
-        eventSystem.publish("combat:roundStart", { eventAction: "roundStart", });
-    }
-
-    atRoundEnd() {
-        this.roundActive = false;
-
-        eventSystem.publish("combat:roundEnd", { eventAction: "roundEnd", });
+        eventSystem.subscribe("player:played", () => {
+            if (this.player.hasTurn) {
+                if (this.player.entity.actionPoints > 0) {
+                    this.actionLoop();
+                } else {
+                    this.processNextTurn();
+                }
+            }
+        });
     }
 
     startRound() {
@@ -51,9 +58,7 @@ export class Combat {
 
         for (const [partyKey, members] of this.parties) {
             for (const entity of members) {
-                if (entity?.status !== "incapacitated" && entity?.status !== "dead") {
-                    this.turnQueue.push({ entity, partyKey });
-                }
+                this.turnQueue.push(entity);
             }
         }
         this.processNextTurn();
@@ -68,15 +73,55 @@ export class Combat {
             return;
         }
 
-        const { entity } = this.turnQueue.shift();
-        this.activeEntity = entity;
-        if (entity === this.player.entity) {
-            this.player.hasTurn = true;
-        } else {
-            entity.publish("gainTurn", { combat: this, map: this.map });
+        const entity = this.turnQueue.shift();
+
+        if (entity.party === this.playersParty) {
+            this.player.entity = entity;
+            this.player.viewport.coordinate = entity.center;
         }
 
-        this.actionLoop(entity);
+        if (entity.status.has("dead")) {
+            this.processNextTurn();
+            return;
+        }
+
+        if (entity.status.has("incapacitated")) {
+            entity.turnsIncapacitated--;
+            if (entity.turnsIncapacitated <= 0) {
+                entity.status.remove("incapacitated");
+            }
+
+            this.processNextTurn();
+            return;
+        }
+
+        this.activeEntity = entity;
+
+        this.actionLoop();
+    }
+
+    actionLoop() {
+        const range = this.activeEntity.getReachRadius();
+        this.activeEntity.dijkstraInfo = dijkstra(this.activeEntity.cell, range, (cell) => this.map.getAdjacentCells(cell));
+
+        if (this.activeEntity === this.player.entity) {
+            this.player.entity.showAura = true;
+            this.player.hasAction = true;
+            this.player.entity.publish("gainTurn");
+        } else {
+            this.activeEntity.publish("gainAction", { combat: this, map: this.map });
+        }
+    }
+
+    filterEntitiesBy(comparator, partyFilter, entityFilter) {
+        const filteredByParty = partyFilter(this.parties);
+        const filteredParties = filteredByParty.flatMap(party => [...party]);
+        const filteredByEntity = entityFilter(filteredParties);
+        const heap = new Heap(comparator);
+        for (const entity of filteredByEntity) {
+            heap.insert(entity);
+        }
+        return heap;
     }
 
     onDeath(entity) {
@@ -99,40 +144,32 @@ export class Combat {
         }
     }
 
-    actionLoop(entity) {
-        const range = entity.getReachRadius();
-        entity.dijkstraInfo = dijkstra(entity.cell, range, (cell) => this.map.getAdjacentCells(cell));
+    atRoundStart() {
+        this.roundCounter++;
+        this.roundActive = true;
 
-        entity.hasTurn = true;
-        if (entity === this.player.entity) {
-            this.player.entity.showAura = true;
-        } else {
-            this.bot.handleEntity(this, entity);
+        for (const entity of this.entities) {
+            entity.actionPoints = entity.maxActionPoints;
         }
+
+        eventSystem.publish("combat:roundStart", { eventAction: "roundStart" });
     }
 
-    filterEntitiesBy(comparator, partyFilter, entityFilter) {
-        const filteredByParty = partyFilter(this.parties);
-        const filteredParties = filteredByParty.flatMap(party => [...party]);
-        const filteredByEntity = entityFilter(filteredParties);
-        const heap = new Heap(comparator);
-        for (const entity of filteredByEntity) {
-            heap.insert(entity);
-        }
-        return heap;
+    atRoundEnd() {
+        this.roundActive = false;
+
+        eventSystem.publish("combat:roundEnd", { eventAction: "roundEnd", });
     }
 
-    update() { }
-}
-
-export class Bot {
-    constructor(entities, grid) {
-        this.entities = entities;
-        this.grid = grid;
-    }
-
-    handleEntity(combat, entity) {
-        entity.takeAction(combat, this.grid);
+    addEntity(entity) {
+        this.entities.add(entity);
+        const key = entity?.party ?? "none";
+        let set = this.parties.get(key);
+        if (!set) {
+            this.parties.set(key, new Set([entity]))
+            set = this.parties.get(key);
+        };
+        set.add(entity);
     }
 
     update() { }

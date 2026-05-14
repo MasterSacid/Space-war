@@ -3,41 +3,33 @@ import { Coordinate, lerp, manhattan } from './utils.js';
 import { app } from './index.js';
 import { eventSystem } from './eventSystem.js';
 
-export class ActionDescriptor {
-    constructor(action, color, title) {
-        this.action = action;
-        this.actionBackground = color;
-
-        this.actionTitle = title;
-        this.actionDescription;
-    }
-
-    setDescription(cost, damage, swing) {
-        this.actionDescription = `Costs ${cost}. Select one enemy to strike them at a close range with a base damage of ${damage} and a possiblity of up to+${swing} more damage.`;
-    }
-}
-
-export class Skip {
-    constructor(entity) {
-        entity.hasTurn = false;
-    }
-
-    update() {
-        return true;
-    }
-}
-
 class Action {
-    constructor(entity, autostart = true) {
-        this.entity = entity;
-        this.autoStart = autostart;
+    constructor() {
+        this.entity;
+        this.lerpDuration;
+        this.lerpProgress;
         this.lerping = false;
-        this.lerpDuration = 0.5 / (this.entity.maxActionPoints * this.entity.agility);
-        this.lerpProgress = 0;
         this.lerpEnd = { x: 0, y: 0 };
         this.lerpStart = { x: 0, y: 0 };
         this.lerper = (t) => 1 - (1 - t) * (1 - t);
+        this.args = {};
     }
+
+    preview(entity, args = {}) {
+        this.entity = entity;
+        this.args = args;
+        return this;
+    }
+
+    init(entity, selection, args = {}) {
+        this.entity = entity;
+        this.args = args;
+        this.lerpDuration = 0.5 / (this.entity.maxActionPoints * this.entity.agility)
+        this.lerpProgress = 0;
+        return this;
+    }
+
+    selection(args) { return null; }
 
     updateLerp(dt, onComplete) {
         this.lerpProgress += dt / this.lerpDuration;
@@ -57,24 +49,50 @@ class Action {
     }
 }
 
+export class Skip extends Action {
+    getTitle() { return "Skip"; }
+
+    getDescription() {
+        const ratio = this.args.healRatio || 0.05;
+        const healAmount = this.entity.actionPoints * Math.round(ratio * this.entity.maxHealth);
+        return `Use all your remaining action points to rest.
+                Heal yourself by ${ratio * 100}% per action point you have. (${healAmount})`;
+    }
+
+    start() {
+        const ratio = this.args.healRatio || 0.05;
+        const healAmount = this.entity.actionPoints * Math.round(ratio * this.entity.maxHealth);
+        this.entity.heal(healAmount);
+        this.entity.actionPoints = 0;
+        this.entity.publish("action:end", { entity: this.entity });
+    }
+
+    update() { return true; }
+}
+
 export class MoveAction extends Action {
-    constructor(entity, path, apLimit, cellSize, autostart = true) {
-        super(entity, autostart);
+    constructor() {
+        super();
+        this.path;
+        this.apLimit;
+        this.cellSize;
+        this.pathIndex;
+
+        this.active = false;
+    }
+
+    selection() { return null };
+
+    init(entity, path, apLimit, cellSize) {
+        super.init(entity);
         this.path = path;
         this.apLimit = apLimit;
         this.cellSize = cellSize;
 
-        this.pathIndex = 0;
-
-        this.active = false;
-
-        if (this.autoStart) {
-            this.start();
-        }
+        return this;
     }
 
     start() {
-        this.entity.moving = true;
         this.active = true;
         this.pathIndex = 1;
     }
@@ -86,6 +104,7 @@ export class MoveAction extends Action {
         this.active = false;
         this.pathIndex = 0;
         this.entity.moving = false;
+        this.entity.publish("action:end", { entity: this.entity });
     }
 
     moveTo(targetCell) {
@@ -99,12 +118,17 @@ export class MoveAction extends Action {
             eventAction: "move",
             entityName: this.name
         });
+
+        this.entity.publish("move:start", {});
     }
 
     update(dt) {
         if (this.active) {
             if (this.lerping) {
-                this.updateLerp(dt, () => this.pathIndex++);
+                this.updateLerp(dt, () => {
+                    this.entity.publish("move:end");
+                    this.pathIndex++
+                });
             } else if (this.pathIndex < this.path.length) {
                 const nextTile = this.path[this.pathIndex];
                 if (this.entity.actionPoints - nextTile.totalCost >= this.apLimit) {
@@ -124,29 +148,48 @@ export class MoveAction extends Action {
 }
 
 export class MeleeAttackAction extends Action {
-    constructor(entity, targetEntity, autostart = true) {
-        super(entity, autostart);
-        this.target = targetEntity;
-
+    constructor() {
+        super();
         this.active = false;
-
         this.lerper = (t) => t * t;
+    }
 
+    selection(args = {}) {
+        return {
+            targetAura: { range: args.range || 1, targetAura: true },
+            target: { type: "entity", amount: 1 }
+        };
+    }
+
+    getTitle() { return "Attack"; }
+
+    getDescription() {
+        return `Cost:${this.args.cost}.
+                Range:${this.args.range}.
+                Deal ${this.args.damage} + up to ${this.args.swing}.`;
+    }
+
+    init(entity, selection, args) {
+        super.init(entity, selection, args);
         this.startingPosition = this.entity.center.clone();
-        this.stage = 0;
-
-        if (this.autoStart) {
-            this.start();
-        }
-
+        this.target = selection.target[0];
+        return this;
     }
 
     start() {
+        if (this.entity.actionPoints < (this.args?.cost || 1)) {
+            console.warn("Action aborted: Insufficient AP.");
+            this.end();
+            return;
+        }
+
         this.active = true;
+        this.stage = 0;
     }
 
     end() {
         this.active = false;
+        this.entity.publish("action:end", { entity: this.entity });
     }
 
     moveToTarget() {
@@ -174,18 +217,18 @@ export class MeleeAttackAction extends Action {
     }
 
     dealDamage() {
-        this.entity.actionPoints -= this.entity.attackCost;
-        const damage = this.entity.getAttackDamage();
+        this.entity.actionPoints -= this.args.cost;
+        const damage = this.args.damage + Math.round(Math.random() * this.args.swing);
         this.target.takeDamage(damage);
-        eventSystem.publish("entity:meleeAttack", {
-            eventAction: "meleeAttack",
-        });
+        eventSystem.publish("entity:meleeAttack", { eventAction: "meleeAttack" });
     }
 
     update(dt) {
         if (this.active) {
             if (this.lerping) {
-                this.updateLerp(dt, () => this.stage++);
+                this.updateLerp(dt, () => {
+                    this.stage++
+                });
             } else {
                 if (this.stage == 0) {
                     this.moveToTarget();
@@ -204,25 +247,49 @@ export class MeleeAttackAction extends Action {
 }
 
 export class RangedAttackAction extends Action {
-    constructor(entity, target, kickback, projectileSpeed, autostart = true) {
-        super(entity, autostart);
-        this.target = target;
-        this.kickback = kickback;
-        this.projectileSpeed = projectileSpeed;
+    constructor() { super(); }
 
-        this.stage = 0;
+    selection(args = {}) {
+        return {
+            targetAura: { range: args.range || 1, targetAura: true },
+            target: { type: "entity", amount: 1 }
+        };
+    }
+
+    getTitle() { return "Take aim"; }
+
+    getDescription() {
+        return `Cost:${this.args.cost}.
+                Range:${this.args.range}.
+                Deal ${this.args.damage} + up to ${this.args.swing} from afar.`;
+    }
+
+    init(entity, selection, args) {
+        super.init(entity, selection, args);
+        this.target = selection.target[0];
+
+        this.kickback = this.args.kickback || 0.1;
+        this.projectileSpeed = this.args.speed || 400;
+        return this;
+    }
+
+    start() {
+        if (this.entity.actionPoints < (this.args?.cost || 1)) {
+            console.warn("Action aborted: Insufficient AP.");
+            this.end();
+            return;
+        }
+
         this.startingPosition = this.entity.center.clone();
-
         this.lerperProjectile = (t) => t ** 2;
 
-        this.distance = { x: target.center.x - entity.center.x, y: target.center.y - entity.center.y };
+        this.distance = { x: this.target.center.x - this.entity.center.x, y: this.target.center.y - this.entity.center.y };
         const distMag = Math.sqrt(this.distance.x ** 2 + this.distance.y ** 2);
         const dir = {
             x: distMag > 0 ? this.distance.x / distMag : 0,
             y: distMag > 0 ? this.distance.y / distMag : 0
         };
 
-        // Spawn slightly outside the entity, pointing toward the target
         const spawn = {
             x: this.entity.center.x + (dir.x * this.entity.width * 0.6),
             y: this.entity.center.y + (dir.y * this.entity.height * 0.6)
@@ -231,27 +298,28 @@ export class RangedAttackAction extends Action {
         this.projectile = new Entity(new Coordinate(spawn.x, spawn.y), "projectile");
         this.projectile.width = 20;
         this.projectile.height = 60;
-        this.projectile.rotation = Math.atan2(target.center.y - entity.center.y, target.center.x - entity.center.x) + Math.PI / 2;
+        this.projectile.rotation = Math.atan2(this.target.center.y - this.entity.center.y, this.target.center.x - this.entity.center.x) + Math.PI / 2;
         this.projectileLerpDuration = distMag / this.projectileSpeed;
         this.projectileLerping = false;
         this.projectileLerpingProgress = 0;
         this.projectileLerpStart = { x: spawn.x, y: spawn.y };
         this.projectileLerpEnd = { x: this.target.center.x, y: this.target.center.y };
 
-        if (autostart) {
-            this.start();
-        }
+        this.active = true;
+        this.stage = 0;
+        this.moveBack();
+    }
+
+    end() {
+        this.entity.publish("action:end", { entity: this.entity });
+        this.active = false;
     }
 
     dealDamage() {
-        this.entity.actionPoints -= this.entity.attackCost;
-        const damage = this.entity.getRangedDamage();
-        this.target.health -= damage;
-
+        this.entity.actionPoints -= this.args.cost;
+        const damage = this.args.damage + Math.round(Math.random() * this.args.swing);
         this.target.takeDamage(damage);
-        eventSystem.publish("entity:rangedAttack", {
-            eventAction: "rangedAttack",
-        });
+        eventSystem.publish("entity:rangedAttack", { eventAction: "rangedAttack" });
     }
 
     updateLerpProjectile(dt) {
@@ -265,15 +333,6 @@ export class RangedAttackAction extends Action {
         const t = this.lerperProjectile(this.projectileLerpingProgress);
         this.projectile.center.x = lerp(this.projectileLerpStart.x, this.projectileLerpEnd.x, t);
         this.projectile.center.y = lerp(this.projectileLerpStart.y, this.projectileLerpEnd.y, t);
-    }
-
-    start() {
-        this.active = true;
-        this.moveBack();
-    }
-
-    end() {
-        this.active = false;
     }
 
     moveBack() {
@@ -331,40 +390,87 @@ export class RangedAttackAction extends Action {
 }
 
 export class AreaAttackAction extends RangedAttackAction {
-    constructor(entity, target, kickback, projectileSpeed, radius, autostart = true) {
+    constructor() { super(); }
 
-        const targetX = target.center ? target.center.x : target.x;
-        const targetY = target.center ? target.center.y : target.y;
+    selection(args = {}) {
+        return {
+            blastAura: { radius: args.radius || 1, range: args.range, targetAura: true },
+            target: { type: "cell", amount: 1 }
+        };
+    }
 
-        const dummyTarget = new Entity(new Coordinate(targetX, targetY), "dummyTarget");
+    getTitle() { return "Blast"; }
 
-        super(entity, dummyTarget, kickback || 0, projectileSpeed, autostart);
-
-        this.radius = radius;
-
-        this.impactCell = target.cell ? target.cell : target;
-
-        if (autostart) {
-            this.start();
-        }
-
+    getDescription() {
+        return `Cost:${this.args.cost}.
+                Range:${this.args.range}.
+                Deal ${this.args.damage} + up to ${this.args.swing} to an area`;
     }
 
     dealDamage() {
-        this.entity.actionPoints -= this.entity.attackCost;
-        const damage = this.entity.getAreaDamage();
+        this.entity.actionPoints -= this.args.cost;
+        const damage = this.args.damage + Math.round(Math.random() * this.args.swing);
 
         app.entities.forEach((e) => {
             if (!e.cell || e.health === undefined) return;
-
             const distance = manhattan(e.cell, this.impactCell);
-
             if (distance <= this.radius) {
-                this.target.takeDamage(damage);
-                eventSystem.publish("entity:areaAttack", {
-                    eventAction: "areaAttack",
-                });
+                e.takeDamage(damage);
+                eventSystem.publish("entity:areaAttack", { eventAction: "areaAttack", cell: this.impactCell });
             }
         });
     }
+
+    init(entity, selection, args) {
+        this.entity = entity;
+
+        const target = selection?.target?.[0];
+        let targetCell;
+
+        if (target && target.col !== undefined && target.row !== undefined) {
+            targetCell = target;
+        } else if (target && target.cell && target.cell.col !== undefined) {
+            targetCell = target.cell;
+        }
+
+        if (!targetCell) {
+            console.warn("AreaAttackAction failed: Target is missing or invalid.", selection);
+            this.failed = true;
+            return this;
+        }
+
+        const size = app.map.cellSize || 64;
+        const targetX = (targetCell.col * size) + (size / 2);
+        const targetY = (targetCell.row * size) + (size / 2);
+
+        const dummyTarget = new Entity(new Coordinate(targetX, targetY), "dummyTarget");
+
+        super.init(entity, { target: [dummyTarget] }, args);
+
+        this.radius = args.radius || 1;
+        this.impactCell = targetCell;
+
+        return this;
+    }
 }
+
+class ActionRegistry {
+    constructor() { this.actions = new Map(); }
+
+    register(name, actionClass) {
+        this.actions.set(name, actionClass);
+    }
+
+    get(name) {
+        const ActionClass = this.actions.get(name);
+        return ActionClass ? new ActionClass() : null;
+    }
+}
+
+export const actionRegistry = new ActionRegistry();
+
+actionRegistry.register("skip", Skip);
+actionRegistry.register("move", MoveAction);
+actionRegistry.register("meleeAttack", MeleeAttackAction);
+actionRegistry.register("rangedAttack", RangedAttackAction);
+actionRegistry.register("areaAttack", AreaAttackAction);

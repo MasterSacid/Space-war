@@ -1,13 +1,25 @@
-import { dijkstra, keyToCell, cellToKey } from "./utils.js";
+import { dijkstra, keyToCell, cellToKey, manhattan } from "./utils.js";
+import { actionRegistry } from "./action.js";
 
 export class Grid {
-    constructor(cellSize = 64, player) {
+    constructor(cellSize = 64, player, trackedEntities) {
         this.cellSize = cellSize;
+        this.trackedEntities = trackedEntities;
         this.cells = {};
         this.paintedTiles = new Map();
         this.hoveredCell = null; // { col, row }
         this.player = player;
-        this.trackedEntities = [];
+
+        for (const entity of this.trackedEntities) {
+            entity.subscribe("move:end", () => {
+                if (entity.previousCell) {
+                    this.appendCell(entity.previousCell.col, entity.previousCell.row, { occupied: false, entity: null });
+                }
+                this.appendCell(entity.cell.col, entity.cell.row, { occupied: true, entity: entity });
+            });
+
+            entity.publish("move:end");
+        }
     }
 
     // Dünya koordinatından hücre indeksine
@@ -136,7 +148,6 @@ export class Grid {
             }
         }
 
-
         //--------- Cell Cizme ----------
         ctx.strokeStyle = "#3a7a3a";
         ctx.lineWidth = 1;
@@ -165,6 +176,10 @@ export class Grid {
             }
         }
 
+        this.drawActionOverlays(ctx, this.player.entity, this.hoveredCell, this.player.entity.selectedAction?.name);
+
+
+        // It is here to debug occupied cell problems. Don't delete, might need later on
         //ctx.fillStyle = "rgba(0,0,0,0.5)";
         //for (let i = -20; i < 20; i++) {
         //    for (let j = -20; j < 20; j++) {
@@ -174,8 +189,56 @@ export class Grid {
         //    }
         //}
 
-
         ctx.restore();
+    }
+
+    drawActionOverlays(ctx, activeEntity, hoveredCell) {
+        if (!activeEntity || !activeEntity.selectedAction) return;
+
+        const actionDef = activeEntity.selectedAction;
+        const actionInstance = actionRegistry.get(actionDef.name);
+        if (!actionInstance) return;
+
+        const selectionRules = actionInstance.selection(actionDef.args || {});
+        if (!selectionRules) return;
+
+        if (selectionRules.targetAura) {
+            this.drawTargetAura(ctx, activeEntity, selectionRules.targetAura.range);
+        }
+
+        if (selectionRules.blastAura) {
+            this.drawBlastAura(ctx, hoveredCell, selectionRules.blastAura.radius);
+        }
+    }
+
+    drawTargetAura(ctx, entity, radius) {
+        if (radius === undefined) return;
+        ctx.fillStyle = "rgba(255,100,100,0.5)";
+
+        const size = this.cellSize;
+
+        for (const tracked of this.trackedEntities) {
+            if (manhattan(tracked.cell, entity.cell) <= radius) {
+                ctx.fillRect(tracked.cell.col * size, tracked.cell.row * size, size, size);
+            }
+        }
+    }
+
+    drawBlastAura(ctx, centerCell, radius) {
+        if (!centerCell || radius === undefined) return;
+        ctx.fillStyle = "rgba(255,100,160,0.5)";
+
+        const size = this.cellSize;
+
+        for (let dc = -radius; dc <= radius; dc++) {
+            for (let dr = -radius; dr <= radius; dr++) {
+                const check = { col: centerCell.col + dc, row: centerCell.row + dr };
+
+                if (manhattan(centerCell, check) <= radius) {
+                    ctx.fillRect(check.col * size, check.row * size, size, size);
+                }
+            }
+        }
     }
 
     drawPaintedTiles(ctx, startCol, startRow, endCol, endRow) {
@@ -211,15 +274,5 @@ export class Grid {
         }
     }
 
-    update(dt) {
-        for (const entity of this.trackedEntities) {
-            if (entity.dirty) {
-                entity.dirty = false;
-                if (entity.previousCell) {
-                    this.appendCell(entity.previousCell.col, entity.previousCell.row, { occupied: false, entity: null });
-                }
-                this.appendCell(entity.cell.col, entity.cell.row, { occupied: true, entity: entity });
-            }
-        }
-    }
+    update(dt) { }
 }

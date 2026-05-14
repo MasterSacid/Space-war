@@ -102,6 +102,13 @@ html,body{
     outline: 5px solid yellow
 }
 
+.card.disabled-card {
+    opacity: 0.5;
+    pointer-events: none;
+    background-color: #e0e0e0;
+    cursor: not-allowed;
+}
+
 #terminalPane{
     position:absolute;
     display:flex;

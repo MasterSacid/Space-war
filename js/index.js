@@ -1,29 +1,35 @@
 import { MainMenu, SpaceScene, StatusPane, TerminalPane, CardPane, dialogPane } from "./ui.js"
 import { Viewport } from "./viewport.js";
 import { Grid } from "./grid.js";
-import { Bot, Combat } from "./combat.js";
+import { Combat } from "./combat.js";
 import { astar, Coordinate, screenToCell, sleep } from "./utils.js";
-import { Entity, Player, RangedEntity, AreaDamagingEntity } from "./entity.js";
+import { Entity, Player, RangedEntity, AreaDamagingEntity, PlayableEntity } from "./entity.js";
 import { Graphics } from "./graphics.js";
 import { Sound } from "./sound.js";
 
-const entity = new Entity(new Coordinate(-96, 32), "Player");
-const wallofentities = Array.from({ length: 4 }, (_, i) => {
-    const wall = new Entity(new Coordinate(224, 288 - i * 64), "Wall " + (i + 1));
-    wall.party = "enemies";
-    return wall;
-});
+const captain = new PlayableEntity(new Coordinate(-96, 32), "Captain");
+captain.party = "goodguysparty";
+
+const wizard = new PlayableEntity(new Coordinate(-32, 32), "Weizardo");
+wizard.party = "goodguysparty";
+
+const woman = new PlayableEntity(new Coordinate(32, 32), "Random Woman");
+woman.party = "goodguysparty";
+
+const meleeEntity = new Entity(new Coordinate(-32 - 4 * 64, 32), "Melee");
+meleeEntity.party = "enemies"
 
 const areaEntity = new AreaDamagingEntity(new Coordinate(-32 - 6 * 64, 32), "Area");
 areaEntity.party = "enemies"
+
+const rangedEntity = new AreaDamagingEntity(new Coordinate(-32 - 5 * 64, 32), "Ranged");
+rangedEntity.party = "enemies"
 
 class App {
     start() {
         //initial setup
         this.canvas = document.getElementById('canvas');
         this.ctx = this.canvas.getContext('2d');
-        this.player = new Player(this.canvas, entity);
-        this.viewport = new Viewport(this.canvas, this.player.entity.center);
         this.mainMenu = new MainMenu(canvas);
         this.spaceScene = new SpaceScene(canvas);
         this.statusPane = new StatusPane(canvas);
@@ -31,17 +37,27 @@ class App {
         this.terminalPane = new TerminalPane(canvas);
         this.cardPane = new CardPane(canvas);
         this.dialogPane = new dialogPane(canvas);
-        this.map = new Grid(64, this.player);
+
+        this.viewport = new Viewport(this.canvas, captain.center);
+        this.player = new Player(this.canvas, captain, this.viewport);
+        this.map = new Grid(64, this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity]);
+
         this.sound = new Sound();
-
         this.graphics = new Graphics(this.canvas, this.player, this.map);
-        this.bot = new Bot(wallofentities, this.map);
-        this.combat = new Combat(this.player, [entity, ...wallofentities, areaEntity], this.map, this.bot);
 
-        this.entities = [entity, ...wallofentities, areaEntity];
+        this.combat = new Combat(this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity], this.map);
+        this.entities = [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity];
 
         // Animation timer
         this.lastTime = 0;
+
+        this.acknowledgeEntity = (...entities) => {
+            entities.reduce((e) => {
+                this.map.trackedEntities.add(e);
+                this.combat.addEntity(e);
+                this.entities.push(e);
+            });
+        };
 
         //Writing text to terminal pane with a cb
         this.addText = (string, letterPerSec) => new Promise((resolve) => {
@@ -87,11 +103,13 @@ class App {
                 return;
             }
 
-            if (this.player.entity.isCellInReach(this.map.hoveredCell)) {
-                const dijkstraPath = this.player.entity.getDijkstraPath(this.map.hoveredCell);
-                this.player.publish("move", { path: dijkstraPath, cellSize: this.map.cellSize, apLimit: 0 });
+            if (this.player.hasAction) {
+                this.player.publish("click", {
+                    cell: this.map.hoveredCell,
+                    entity: this.map.getCell(this.map.hoveredCell.col, this.map.hoveredCell.row)?.entity || null,
+                    cellSize: this.map.cellSize
+                });
             }
-
         });
 
         //Mouse up handler.
@@ -101,7 +119,6 @@ class App {
             }
         });
 
-        this.map.trackedEntities = [entity, ...wallofentities, areaEntity];
         //this.canvas.style.cursor = 'none';
 
         //this.mainMenu.on();
@@ -140,7 +157,6 @@ class App {
 
         this.combat.update();
 
-        //this.bot.update();
 
         // Viewport reset
         this.viewport.reset();

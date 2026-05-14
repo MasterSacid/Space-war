@@ -1,4 +1,5 @@
 import { sleep } from "./utils.js";
+import { eventSystem } from "./eventSystem.js";
 
 class Window {
     constructor(canvas, width = 100, height = 100, x = 0, y = 0) {
@@ -122,6 +123,7 @@ export class StatusPane extends Window {
         await sleep(600)
         this.G8000.classList.remove("is-blinking");
     }
+
     G8000Offline() {
         this.G8000.style.background = "radial-gradient(circle at center, black var(--inner-radius),yellow 70%, #778787 80%)"
         this.G8000.classList.add("is-blinking");
@@ -255,33 +257,62 @@ export class CardPane extends Window {
         super(canvas);
         this.container = document.getElementById("cardPane");
         this.container.style.display = "flex";
-        this.dialogIdCounter = 0;
 
-        this.selectedCardIndex;
+        this.selectedCardIndex = -1;
+        this.cards = [];
 
-        const cards = this.container.querySelectorAll(".card");
+        eventSystem.subscribe("entity:option", ({ options }) => {
+            this.buildCards(options);
+        });
 
-        cards.forEach((card, i) => {
-            card.addEventListener("mousedown", (e) => {
-                let noAdd = false;
-                if (this.selectedCardIndex == i) {
-                    this.selectedCardIndex = -1;
-                    noAdd = true;
-                } else {
-                    this.selectedCardIndex = i;
-                }
-
-                cards.forEach((c, j) => {
-                    c.classList.remove("selected-card");
-
-                    if (j === this.selectedCardIndex && !noAdd) {
-                        c.classList.add("selected-card");
-                    }
-                });
-            });
+        eventSystem.subscribe("player:played", () => {
+            this.clearSelection();
         });
     }
 
+    buildCards(options) {
+        this.container.innerHTML = "";
+        this.cards = [];
+        this.selectedCardIndex = -1;
+
+        options.forEach((option, i) => {
+            const card = document.createElement("div");
+            card.className = "card";
+
+            if (!option.canAfford) {
+                card.classList.add("disabled-card");
+            }
+
+            card.innerHTML = `
+                <div class="card-header">${option.title}</div>
+                <div class="card-description">${option.description}</div>
+            `;
+
+            card.addEventListener("mousedown", () => {
+                if (!option.canAfford) return;
+
+                if (this.selectedCardIndex === i) {
+                    this.clearSelection();
+                    eventSystem.publish("player:select", { index: -1 });
+                } else {
+                    this.clearSelection();
+                    this.selectedCardIndex = i;
+                    card.classList.add("selected-card");
+                    eventSystem.publish("player:select", { index: this.selectedCardIndex });
+                }
+            });
+
+            this.container.appendChild(card);
+            this.cards.push(card);
+        });
+    }
+
+    clearSelection() {
+        if (this.selectedCardIndex !== -1 && this.cards[this.selectedCardIndex]) {
+            this.cards[this.selectedCardIndex].classList.remove("selected-card");
+        }
+        this.selectedCardIndex = -1;
+    }
 
     on() {
         this.container.style.display = "flex";
@@ -290,5 +321,4 @@ export class CardPane extends Window {
     off() {
         this.container.style.display = "none";
     }
-
 }
