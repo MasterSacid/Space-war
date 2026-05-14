@@ -44,13 +44,12 @@ class App {
         //initial setup
         this.canvas = document.getElementById('canvas');
         this.ctx = this.canvas.getContext('2d');
-        this.mainMenu = new MainMenu(canvas);
-        this.spaceScene = new SpaceScene(canvas);
-        this.statusPane = new StatusPane(canvas);
-        this.statusPane = new StatusPane(canvas);
-        this.terminalPane = new TerminalPane(canvas);
-        this.cardPane = new CardPane(canvas);
-        this.dialogPane = new dialogPane(canvas);
+        this.mainMenu = new MainMenu(this.canvas);
+        this.spaceScene = new SpaceScene(this.canvas);
+        this.statusPane = new StatusPane(this.canvas);
+        this.terminalPane = new TerminalPane(this.canvas);
+        this.cardPane = new CardPane(this.canvas);
+        this.dialogPane = new dialogPane(this.canvas);
         this.animationPlayers = [captainAnim, magicianAnim, womanAnim, meleeEntityAnim, rangedEntityAnim];
 
         this.viewport = new Viewport(this.canvas, captain.center);
@@ -67,7 +66,7 @@ class App {
         this.lastTime = 0;
 
         this.acknowledgeEntity = (...entities) => {
-            entities.reduce((e) => {
+            entities.forEach((e) => {
                 this.map.trackedEntities.add(e);
                 this.combat.addEntity(e);
                 this.entities.push(e);
@@ -166,6 +165,7 @@ class App {
         this.terminalPane.update(deltaTime);
 
         this.entities.forEach((e) => e.update(deltaTime));
+        this.animationPlayers.forEach((p) => p.update(deltaTime));
         this.player.update(deltaTime);
 
         this.map.update();
@@ -220,6 +220,8 @@ class App {
 }
 
 export const app = new App();
-app.start();
-app.ctx.save();
-requestAnimationFrame((time) => app.update(time));
+animationCatalogue.ready().then(() => {
+    app.start();
+    app.ctx.save();
+    requestAnimationFrame((time) => app.update(time));
+});

@@ -102,7 +102,7 @@ export class AnimationPlayer {
 
     handleMelee = (data) => {
         if (!data || data.entityName !== this.entity.name) return;
-        this.play("punch", {
+        this.play("attack", {
             loop: false,
             onEnd: () => this.play(this.defaultAnimation, { loop: true }),
         });
