@@ -85,10 +85,10 @@ export class Player {
     update(dt) {
         if (!this.keys) return;
         if (this.enableKeyboardMovement) {
-            if (this.keys['w']) this.entity.center.y -= 100 * dt;
-            if (this.keys['a']) this.entity.center.x -= 100 * dt;
-            if (this.keys['s']) this.entity.center.y += 100 * dt;
-            if (this.keys['d']) this.entity.center.x += 100 * dt;
+            if (this.keys['w']) this.entity.center.y -= 300 * dt;
+            if (this.keys['a']) this.entity.center.x -= 300 * dt;
+            if (this.keys['s']) this.entity.center.y += 300 * dt;
+            if (this.keys['d']) this.entity.center.x += 300 * dt;
         }
     }
 }
