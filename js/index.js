@@ -52,6 +52,7 @@ class App {
             this.turnOnAllOverlays();
             this.spaceScene.smallMode = true;
 
+            this.sound.playMusic("main");
             this.story();
         });
 
