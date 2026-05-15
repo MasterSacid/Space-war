@@ -54,6 +54,7 @@ class App {
         this.map = new Grid(64, this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity]);
 
         this.sound = new Sound();
+        this.sound.playMusic("main",0.1);
         this.graphics = new Graphics(this.canvas, this.player, this.map);
 
         this.combat = new Combat(this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity], this.map);
