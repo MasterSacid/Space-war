@@ -86,7 +86,35 @@ export class Sound {
                 ]
             },
 
-            Spell:{}
+            Spell:{
+                bloodwitch: [
+                    "./sounds/Spell/bloodwitch/attack_1.wav",
+                    "./sounds/Spell/bloodwitch/attack_2.wav",
+                ],
+                cyborg: [
+                    "./sounds/Spell/cyborg/attack_1.wav",
+                    "./sounds/Spell/cyborg/attack_2.wav",
+                    "./sounds/Spell/cyborg/attack_3.wav",
+                ],
+                magician: [
+                    "./sounds/Spell/magician/attack_1.wav",
+                    "./sounds/Spell/magician/attack_2.wav",
+                    "./sounds/Spell/magician/attack_3.wav",
+                ],
+                Skeleton: [
+                    "./sounds/Spell/Skeleton/attack_1.wav",
+                    "./sounds/Spell/Skeleton/attack_2.wav",
+                    "./sounds/Spell/Skeleton/attack_3.wav",
+                ],
+                slime: [
+                    "./sounds/Spell/slime/slime_attack_1.wav",
+                    "./sounds/Spell/slime/slime_attack_2.wav",
+                ],
+                speerwoman: [
+                    "./sounds/Spell/speerwoman/attack_1.wav",
+                    "./sounds/Spell/speerwoman/attack_2.wav",
+                ],
+            }
         };
 
         this.musicCatalogue = {
