@@ -1,2 +1,9 @@
 'Monoton' font by Vernon Adams (Open Font License)
 'PressStart2P' font by CodeMan28 (Open Font License)
+'Grass+' tileset by SciGho (CC-BY 4.0)
+'Free Sci-Fi TileSet Space station' by Aske4
+'Treasure+' by SciGho (CC-BY 4.0)
+'Trees+' by SciGho (CC-BY 4.0)
+'Pixel Combat' by Helton Yan (Creative Commons Attribution v4.0 International)
+'Clement Panchout _ The Sicko Gecko' (Creative Commons Attribution 4.0 International)
+'Classic UI SFX' by ChhoffMusic
