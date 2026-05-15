@@ -4,7 +4,7 @@ import { Grid } from "./grid.js";
 import { Combat } from "./combat.js";
 import { astar, Coordinate, screenToCell, sleep } from "./utils.js";
 import { Entity, Player, RangedEntity, AreaDamagingEntity, PlayableEntity } from "./entity.js";
-import { Graphics, createGameTilesets } from "./graphics.js";
+import { Graphics, createGameTilesets, fetchMapList, fetchMapData } from "./graphics.js";
 import { Sound } from "./sound.js";
 import { AnimationPlayer, createAnimationCatalogue } from "./animation.js";
 import { eventSystem } from "./eventSystem.js";
@@ -60,29 +60,40 @@ class App {
         this.ctx.textBaseline = "middle";
         this.ctx.fillText("LOADING", this.canvas.width / 2, this.canvas.height / 2);
 
-        await Promise.all([
+        const [, , mapList] = await Promise.all([
             this.animationCatalogue.ready(),
-            ...this.tilesets.map((t) => t.ready),
+            Promise.all(this.tilesets.map((t) => t.ready)),
+            fetchMapList(),
         ]);
+        const initialFile = mapList[0]?.file ?? "map1.json";
+        const initialTiles = (await fetchMapData(initialFile)).tiles ?? [];
+
+        this.initialMapData = { mapList, currentFile: initialFile, tiles: initialTiles };
     }
 
     async start() {
-        this.mainMenu = new MainMenu(canvas);
-        this.spaceScene = new SpaceScene(canvas);
-        this.statusPane = new StatusPane(canvas);
-        this.statusPane = new StatusPane(canvas);
-        this.terminalPane = new TerminalPane(canvas);
-        this.cardPane = new CardPane(canvas);
-        this.dialogPane = new dialogPane(canvas);
-        this.tempTextPane = new TempTextPane(canvas);
+        this.mainMenu = new MainMenu(this.canvas);
+        this.spaceScene = new SpaceScene(this.canvas);
+        this.statusPane = new StatusPane(this.canvas);
+        this.statusPane = new StatusPane(this.canvas);
+        this.terminalPane = new TerminalPane(this.canvas);
+        this.cardPane = new CardPane(this.canvas);
+        this.dialogPane = new dialogPane(this.canvas);
+        this.tempTextPane = new TempTextPane(this.canvas);
 
         this.viewport = new Viewport(this.canvas, captain.center);
         this.player = new Player(this.canvas, captain, this.viewport);
         this.map = new Grid(64, this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity]);
 
+        const tilesetsByName = new Map(this.tilesets.map((t) => [t.name, t]));
+        this.map.importPaintedTiles(
+            this.initialMapData.tiles,
+            (name) => tilesetsByName.get(name)
+        );
+
         this.sound = new Sound();
-        this.sound.playMusic("main", 0.5);
-        this.graphics = new Graphics(this.canvas, this.player, this.map, this.tilesets);
+        this.sound.playMusic("main", 0.07);
+        this.graphics = new Graphics(this.canvas, this.player, this.map, this.tilesets, this.initialMapData);
 
         this.combat = new Combat(this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity], this.map);
         this.entities = [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity];

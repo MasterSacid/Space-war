@@ -1,6 +1,40 @@
 import { TilePalette, Tileset } from "./tileset.js";
 import { cellToKey } from "./utils.js";
 
+export async function fetchMapList(defaultFile = "map1.json") {
+    try {
+        const response = await fetch("./api/maps", { cache: "no-store" });
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data.maps) && data.maps.length > 0) {
+                return data.maps;
+            }
+        }
+    } catch (error) {
+        console.warn("Couldn't connect to NodeJS backend for map lists.");
+    }
+
+    try {
+        const response = await fetch("./maps/index.json", { cache: "no-store" });
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data.maps) && data.maps.length > 0) {
+                return data.maps;
+            }
+        }
+    } catch (error) {
+        console.warn("Couldn't open the file for map lists.");
+    }
+
+    return [{ name: "Map 1", file: defaultFile }];
+}
+
+export async function fetchMapData(file) {
+    const response = await fetch(`./maps/${encodeURIComponent(file)}`, { cache: "no-store" });
+    if (!response.ok) throw new Error("Map load request failed");
+    return await response.json();
+}
+
 export function createGameTilesets() {
     return [
         new Tileset({
@@ -31,17 +65,18 @@ export function createGameTilesets() {
 }
 
 export class Graphics {
-    constructor(canvas, player, map, tilesets) {
+    constructor(canvas, player, map, tilesets, initialMapData) {
         this.canvas = canvas;
         this.player = player;
         this.map = map;
         this.tilesets = tilesets;
+        this.initialMapData = initialMapData;
         this.ctx = this.canvas.getContext('2d');
         this.debugMode = false;
         this.isPainting = false;
         this.lastPaintedCellKey = null;
         this.defaultMapFile = "map1.json";
-        this.selectedMapFile = this.defaultMapFile;
+        this.selectedMapFile = initialMapData?.currentFile ?? this.defaultMapFile;
         this.currentTileSelection = null;
         this.currentTileZIndex = 0;
         this.currentTileCost = 1;
@@ -123,47 +158,15 @@ export class Graphics {
         };
     }
 
-    async setupMaps() {
-        const maps = await this.fetchMapList();
-        this.renderMapOptions(maps);
-
-        this.selectedMapFile = maps[0]?.file ?? this.defaultMapFile;
+    setupMaps() {
+        const mapList = this.initialMapData?.mapList ?? [{ name: "Map 1", file: this.defaultMapFile }];
+        this.renderMapOptions(mapList);
         this.mapSelect.value = this.selectedMapFile;
 
         this.mapSelect.addEventListener("change", () => {
             this.selectedMapFile = this.mapSelect.value;
             this.loadSelectedMap();
         });
-
-        await this.loadSelectedMap();
-    }
-
-    async fetchMapList() {
-        try {
-            const response = await fetch("./api/maps", { cache: "no-store" });
-            if (response.ok) {
-                const data = await response.json();
-                if (Array.isArray(data.maps) && data.maps.length > 0) {
-                    return data.maps;
-                }
-            }
-        } catch (error) {
-            console.warn("Couldn't connect to NodeJS backend for map lists.");
-        }
-
-        try {
-            const response = await fetch("./maps/index.json", { cache: "no-store" });
-            if (response.ok) {
-                const data = await response.json();
-                if (Array.isArray(data.maps) && data.maps.length > 0) {
-                    return data.maps;
-                }
-            }
-        } catch (error) {
-            console.warn("Couldn't open the file for map lists.");
-        }
-
-        return [{ name: "Map 1", file: this.defaultMapFile }];
     }
 
     renderMapOptions(maps) {
@@ -203,14 +206,7 @@ export class Graphics {
         this.selectedMapFile = this.mapSelect.value || this.defaultMapFile;
 
         try {
-            const response = await fetch(`./maps/${encodeURIComponent(this.selectedMapFile)}`, {
-                cache: "no-store"
-            });
-            if (!response.ok) {
-                throw new Error("Map load request failed");
-            }
-
-            const mapData = await response.json();
+            const mapData = await fetchMapData(this.selectedMapFile);
             if (!Array.isArray(mapData.tiles)) return;
 
             this.map.importPaintedTiles(
