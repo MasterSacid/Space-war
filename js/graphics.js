@@ -1,11 +1,41 @@
 import { TilePalette, Tileset } from "./tileset.js";
 import { cellToKey } from "./utils.js";
 
+export function createGameTilesets() {
+    return [
+        new Tileset({
+            name: "Spaceship",
+            imageUrl: new URL("../img/spaceship.png", import.meta.url).href,
+            tileSize: 32,
+            tilesPerRow: 10
+        }),
+        new Tileset({
+            name: "Grass",
+            imageUrl: new URL("../img/grass.png", import.meta.url).href,
+            tileSize: 16,
+            tilesPerRow: 25
+        }),
+        new Tileset({
+            name: "Treasure",
+            imageUrl: new URL("../img/Treasure.png", import.meta.url).href,
+            tileSize: 16,
+            tilesPerRow: 16
+        }),
+        new Tileset({
+            name: "Trees",
+            imageUrl: new URL("../img/trees.png", import.meta.url).href,
+            tileSize: 32,
+            tilesPerRow: 25
+        })
+    ];
+}
+
 export class Graphics {
-    constructor(canvas, player, map) {
+    constructor(canvas, player, map, tilesets) {
         this.canvas = canvas;
         this.player = player;
         this.map = map;
+        this.tilesets = tilesets;
         this.ctx = this.canvas.getContext('2d');
         this.debugMode = false;
         this.isPainting = false;
@@ -43,42 +73,13 @@ export class Graphics {
             }
         });
 
-        const tilesets = [
-            new Tileset({
-                name: "Spaceship",
-                imageUrl: new URL("../img/spaceship.png", import.meta.url).href,
-                tileSize: 32,
-                tilesPerRow: 10
-            }),
-            new Tileset({
-                name: "Grass",
-                imageUrl: new URL("../img/grass.png", import.meta.url).href,
-                tileSize: 16,
-                tilesPerRow: 25
-            }),
-            new Tileset({
-                name: "Treasure",
-                imageUrl: new URL("../img/Treasure.png", import.meta.url).href,
-                tileSize: 16,
-                tilesPerRow: 16
-            }),
-            new Tileset({
-                name: "Trees",
-                imageUrl: new URL("../img/trees.png", import.meta.url).href,
-                tileSize: 32,
-                tilesPerRow: 25
-            }
-            )
-        ];
-        this.tilesetsByName = new Map(tilesets.map((tileset) => [tileset.name, tileset]));
+        this.tilesetsByName = new Map(this.tilesets.map((tileset) => [tileset.name, tileset]));
 
-        for (const tileset of tilesets) {
+        for (const tileset of this.tilesets) {
             this.tilePalette.addTileset(tileset);
         }
 
-        Promise.all(tilesets.map((tileset) => tileset.ready)).then(() => {
-            this.setupMaps();
-        });
+        this.setupMaps();
 
         toggle.addEventListener("click", () => {
             const collapsed = panel.classList.toggle("is-collapsed");

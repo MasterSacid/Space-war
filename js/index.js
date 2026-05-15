@@ -4,7 +4,7 @@ import { Grid } from "./grid.js";
 import { Combat } from "./combat.js";
 import { astar, Coordinate, screenToCell, sleep } from "./utils.js";
 import { Entity, Player, RangedEntity, AreaDamagingEntity, PlayableEntity } from "./entity.js";
-import { Graphics } from "./graphics.js";
+import { Graphics, createGameTilesets } from "./graphics.js";
 import { Sound } from "./sound.js";
 import { AnimationPlayer, createAnimationCatalogue } from "./animation.js";
 import { eventSystem } from "./eventSystem.js";
@@ -44,10 +44,29 @@ const entityAnimationMap = [
 ];
 
 class App {
-    async start() {
-        //initial setup
+    async load() {
         this.canvas = document.getElementById('canvas');
         this.ctx = this.canvas.getContext('2d');
+        this.ctx.imageSmoothingEnabled = false;
+
+        this.animationCatalogue = createAnimationCatalogue();
+        this.tilesets = createGameTilesets();
+
+        this.ctx.fillStyle = "#000";
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillStyle = "#fff";
+        this.ctx.font = "bold 120px monospace";
+        this.ctx.textAlign = "center";
+        this.ctx.textBaseline = "middle";
+        this.ctx.fillText("LOADING", this.canvas.width / 2, this.canvas.height / 2);
+
+        await Promise.all([
+            this.animationCatalogue.ready(),
+            ...this.tilesets.map((t) => t.ready),
+        ]);
+    }
+
+    async start() {
         this.mainMenu = new MainMenu(canvas);
         this.spaceScene = new SpaceScene(canvas);
         this.statusPane = new StatusPane(canvas);
@@ -62,8 +81,8 @@ class App {
         this.map = new Grid(64, this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity]);
 
         this.sound = new Sound();
-        this.sound.playMusic("main", 0.1);
-        this.graphics = new Graphics(this.canvas, this.player, this.map);
+        this.sound.playMusic("main", 0.5);
+        this.graphics = new Graphics(this.canvas, this.player, this.map, this.tilesets);
 
         this.combat = new Combat(this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity], this.map);
         this.entities = [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity];
@@ -72,11 +91,6 @@ class App {
 
         // Animation timer
         this.lastTime = 0;
-
-        // --- ANIMATION SETUP ---
-        this.animationCatalogue = createAnimationCatalogue();
-        // Tüm sprite sheet'lerin yüklenmesini bekle
-        await this.animationCatalogue.ready();
 
         // Her entity için bir AnimationPlayer oluştur ve entity'ye bağla
         this.animationPlayers = entityAnimationMap.map(({ entity, setName }) => {
@@ -261,4 +275,5 @@ class App {
 }
 
 export const app = new App();
-app.start();
+await app.load();
+await app.start();
