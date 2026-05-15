@@ -15,12 +15,12 @@ captain.playerActions.push({ name: "meleeAttack", args: { cost: 1, range: 1, dam
 const wizard = new PlayableEntity(new Coordinate(-416, 32), "Weizardo", "magician", "allies");
 wizard.playerActions.push({ name: "rangedAttack", args: { cost: 1, range: 6, damage: 10, swing: 10, kickback: 0.1, speed: 400, alignment: "enemy" } });
 
-const woman = new PlayableEntity(new Coordinate(-362, 32), "Random Woman", "spear-woman", "allies");
+const woman = new PlayableEntity(new Coordinate(-352, 32), "Random Woman", "spear-woman", "allies");
 woman.playerActions.push({ name: "areaAttack", args: { cost: 2, range: 7, radius: 2, damage: 10, swing: 20, kickback: -0.1, speed: 400 } });
 
 const meleeEntity = new Entity(new Coordinate(-160, 32), "Skeleton", "skeleton", "enemies");
 const meleeEntity2 = new Entity(new Coordinate(-226, -32), "Skeleton", "skeleton", "enemies");
-const meleeEntity3 = new Entity(new Coordinate(-362, -96), "Skeleton", "skeleton", "enemies");
+const meleeEntity3 = new Entity(new Coordinate(-352, -96), "Skeleton", "skeleton", "enemies");
 
 const areaEntity = new AreaDamagingEntity(new Coordinate(-32, 32), "Witch", "blood-witch", "enemies");
 
@@ -77,7 +77,7 @@ class App {
         this.dialogPane = new dialogPane(this.canvas);
         this.tempTextPane = new TempTextPane(this.canvas);
 
-        this.viewport = new Viewport(this.canvas, captain.center);
+        this.viewport = new Viewport(this.canvas, captain.center.clone());
         this.player = new Player(this.canvas, captain, this.viewport);
         this.map = new Grid(64, this.player, [meleeEntity, meleeEntity2, meleeEntity3, captain, wizard, woman, meleeEntity, areaEntity, rangedEntity]);
 
@@ -91,8 +91,8 @@ class App {
         this.sound.playMusic("main", 0.07);
         this.graphics = new Graphics(this.canvas, this.player, this.map, this.tilesets, this.initialMapData);
 
-        this.combat = new Combat(this.player, [meleeEntity, meleeEntity2, meleeEntity3, captain, wizard, woman, meleeEntity, areaEntity, rangedEntity], this.map);
-        this.entities = [meleeEntity, meleeEntity2, meleeEntity3, captain, wizard, woman, meleeEntity, areaEntity, rangedEntity];
+        this.combat = new Combat(this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity, meleeEntity, meleeEntity2, meleeEntity3], this.map);
+        this.entities = [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity, meleeEntity, meleeEntity2, meleeEntity3];
 
         eventSystem.subscribe("combat:end", ({ winnerParty }) => this.handleCombatEnd(winnerParty));
 

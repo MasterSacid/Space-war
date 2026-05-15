@@ -25,7 +25,7 @@ class Action {
     init(entity, selection, args = {}) {
         this.entity = entity;
         this.args = args;
-        this.lerpDuration = 0.5 / (this.entity.maxActionPoints * this.entity.agility)
+        this.lerpDuration = 1 / (this.entity.maxActionPoints * this.entity.agility)
         this.lerpProgress = 0;
         return this;
     }

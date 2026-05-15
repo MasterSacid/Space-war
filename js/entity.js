@@ -366,8 +366,8 @@ export class PlayableEntity extends Entity {
     constructor(center, name, type = "empty", party = "empty") {
         super(center, name, type, party);
 
-        this.maxHealth = 200;
-        this.health = 200;
+        this.maxHealth = 150;
+        this.health = 150;
 
         this.targetAura = false;
         this.blastAura = false;
