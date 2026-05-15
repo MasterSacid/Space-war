@@ -92,6 +92,8 @@ export class Combat {
             return;
         }
 
+        eventSystem.publish("camera:move");
+
         if (entity.party === this.player.entity.party) {
             if (Math.random() < 1 / 3) {
                 eventSystem.publish("entity:turn-start", { entity: entity })

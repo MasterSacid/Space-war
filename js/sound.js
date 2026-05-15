@@ -7,11 +7,11 @@ export class Sound {
 
         this.soundCatalogue = {
             move: [
-                "./sounds/movement/metal1.ogg",
-                "./sounds/movement/metal2.ogg",
-                "./sounds/movement/metal3.ogg",
-                "./sounds/movement/metal4.ogg",
-                "./sounds/movement/metal5.ogg",
+                "./sounds/movement/movement1.wav",
+                "./sounds/movement/movement2.wav",
+                "./sounds/movement/movement3.wav",
+                "./sounds/movement/movement4.wav",
+                "./sounds/movement/movement5.wav",
             ],
             dialogue: {
                 "spear-woman": {
@@ -66,6 +66,25 @@ export class Sound {
                     death: ["./sounds/dialogue/captain/death_2_sean.wav"],
                 },
             },
+
+            CameraWoosh: [
+                "./sounds/additional/camera_woosh_1.wav",
+                "./sounds/additional/camera_woosh_2.wav",
+                "./sounds/additional/camera_woosh_3.wav",
+                "./sounds/additional/camera_woosh_4.wav",
+                "./sounds/additional/camera_woosh_5.wav",
+                "./sounds/additional/camera_woosh_6.wav",
+            ],
+
+            UISounds: {
+                select: [
+                    "./sounds/additional/ui_confirm_1.wav",
+                    "./sounds/additional/se_cursormove.wav",
+                ],
+                deselect: [
+                    "./sounds/additional/ui_deselect.wav",
+                ]
+            }
         };
 
         this.musicCatalogue = {
@@ -84,6 +103,8 @@ export class Sound {
         this.subscribe("entity:action-blocked", this.handleActionBlocked);
         this.subscribe("entity:damaged", this.handleDamaged);
         this.subscribe("entity:death", this.handleDied);
+        this.subscribe("camera:move", this.handleCameraMovement);
+        this.subscribe("player:select", this.handleUISelect);
 
         // Publish formats:
         // eventSystem.publish("entity:move",           { entityName: "..." });
@@ -114,6 +135,16 @@ export class Sound {
     handleActionBlocked = ({ entity }) => this.playSound(["dialogue", entity.type, "refusal"], 0.4);
     handleDamaged = ({ entity }) => this.playSound(["dialogue", entity.type, "hurt"], 0.4);
     handleDied = ({ entity }) => this.playSound(["dialogue", entity.type, "death"], 0.4);
+    handleCameraMovement = () => this.playSound("CameraWoosh");
+    handleUISelect = ({ index }) => {
+        if (index >= 0) {
+            this.playSound(["UISounds", "select"]);
+            console.log("select");
+        } else {
+            this.playSound(["UISounds", "deselect"]);
+            console.log("deselect");
+        }
+    };
 
     playSound(path, volume = 0.1) {
         const keys = Array.isArray(path) ? path : [path];
