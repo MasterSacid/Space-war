@@ -9,18 +9,22 @@ import { Sound } from "./sound.js";
 import { AnimationPlayer, createAnimationCatalogue } from "./animation.js";
 import { eventSystem } from "./eventSystem.js";
 
-const captain = new PlayableEntity(new Coordinate(-32 - 4 * 64, 32), "Captain", "cyborg", "allies");
+const captain = new PlayableEntity(new Coordinate(-288, 32), "Captain", "cyborg", "allies");
 captain.playerActions.push({ name: "meleeAttack", args: { cost: 1, range: 1, damage: 20, swing: 10, alignment: "enemy" } });
 
-const wizard = new PlayableEntity(new Coordinate(-32 - 6 * 64, 32), "Weizardo", "magician", "allies");
+const wizard = new PlayableEntity(new Coordinate(-416, 32), "Weizardo", "magician", "allies");
 wizard.playerActions.push({ name: "rangedAttack", args: { cost: 1, range: 6, damage: 10, swing: 10, kickback: 0.1, speed: 400, alignment: "enemy" } });
 
-const woman = new PlayableEntity(new Coordinate(-32 - 5 * 64, 32), "Random Woman", "spear-woman", "allies");
+const woman = new PlayableEntity(new Coordinate(-362, 32), "Random Woman", "spear-woman", "allies");
 woman.playerActions.push({ name: "areaAttack", args: { cost: 2, range: 7, radius: 2, damage: 10, swing: 20, kickback: -0.1, speed: 400 } });
 
-const meleeEntity = new Entity(new Coordinate(-96, 32), "Melee", "skeleton", "enemies");
-const areaEntity = new AreaDamagingEntity(new Coordinate(-32, 32), "Area", "blood-witch", "enemies");
-const rangedEntity = new AreaDamagingEntity(new Coordinate(32, 32), "Ranged", "slime", "enemies");
+const meleeEntity = new Entity(new Coordinate(-160, 32), "Skeleton", "skeleton", "enemies");
+const meleeEntity2 = new Entity(new Coordinate(-226, -32), "Skeleton", "skeleton", "enemies");
+const meleeEntity3 = new Entity(new Coordinate(-362, -96), "Skeleton", "skeleton", "enemies");
+
+const areaEntity = new AreaDamagingEntity(new Coordinate(-32, 32), "Witch", "blood-witch", "enemies");
+
+const rangedEntity = new AreaDamagingEntity(new Coordinate(32, 32), "Slime", "slime", "enemies");
 
 class App {
     async load() {
@@ -75,7 +79,7 @@ class App {
 
         this.viewport = new Viewport(this.canvas, captain.center);
         this.player = new Player(this.canvas, captain, this.viewport);
-        this.map = new Grid(64, this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity]);
+        this.map = new Grid(64, this.player, [meleeEntity, meleeEntity2, meleeEntity3, captain, wizard, woman, meleeEntity, areaEntity, rangedEntity]);
 
         const tilesetsByName = new Map(this.tilesets.map((t) => [t.name, t]));
         this.map.importPaintedTiles(
@@ -84,11 +88,11 @@ class App {
         );
 
         this.sound = new Sound();
-        //this.sound.playMusic("main", 0.07);
+        this.sound.playMusic("main", 0.07);
         this.graphics = new Graphics(this.canvas, this.player, this.map, this.tilesets, this.initialMapData);
 
-        this.combat = new Combat(this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity], this.map);
-        this.entities = [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity];
+        this.combat = new Combat(this.player, [meleeEntity, meleeEntity2, meleeEntity3, captain, wizard, woman, meleeEntity, areaEntity, rangedEntity], this.map);
+        this.entities = [meleeEntity, meleeEntity2, meleeEntity3, captain, wizard, woman, meleeEntity, areaEntity, rangedEntity];
 
         eventSystem.subscribe("combat:end", ({ winnerParty }) => this.handleCombatEnd(winnerParty));
 
@@ -131,8 +135,8 @@ class App {
         });
 
         this.mainMenu.playBtn.addEventListener("click", () => {
-            this.mainMenu.off();
             this.turnOnAllOverlays();
+            this.mainMenu.off();
             this.spaceScene.smallMode = true;
 
             this.story();
@@ -182,8 +186,8 @@ class App {
 
         //this.canvas.style.cursor = 'none';
 
-        //this.mainMenu.on();
-        this.spaceScene.visible = false;
+        this.mainMenu.on();
+        this.spaceScene.visible = true;
 
         // Animasyonlar hazır, ana döngüyü başlat
         this.ctx.save();
@@ -192,17 +196,19 @@ class App {
 
     async story() {
         await sleep(200);
-        await this.addText("Systems rebooting...", 6);
+        await this.addText("Systems rebooting...", 100);
         await sleep(2000);
         this.statusPane.G8000Online();
-        await this.addText("Systems reboot complete", 20);
+        await this.addText("Systems reboot complete", 100);
         await sleep(1000);
-        await this.addText("[G8000]: You are finally awake captain.", 20);
-        await this.addText("[G8000]: After the last missile the alien ships have sent us, you banged your head pretty bad.", 20);
-        await this.addText("[G8000]: The ship is crumbling. You need to get off this ship immediately. I will take care of that now.", 20);
-        await this.addText("[G8000]: You are now being transported to a planet with anomilies. Take care until the rescue teams come.", 20);
+        await this.addText("[G8000]: You are finally awake captain.", 100);
+        await this.addText("[G8000]: After the last missile the alien ships have sent us, you banged your head pretty bad.", 100);
+        await this.addText("[G8000]: The ship is crumbling. You need to get off this ship immediately. I will take care of that now.", 100);
+        await this.addText("[G8000]: You are now being transported to a planet with anomilies. Take care until the rescue teams come.", 100);
         await this.addDialog("A Call to Arms", "", "To battle!", () => {
             this.turnOffAllOverlays();
+            this.cardPane.on();
+            this.combat.startRound();
         });
     }
 
@@ -281,7 +287,7 @@ class App {
         this.dialogPane.off();
         this.statusPane.off();
         this.terminalPane.off();
-        this.cardPane.off();
+        this.mainMenu.off();
         this.spaceScene.visible = false;
     }
 
@@ -289,7 +295,6 @@ class App {
         this.dialogPane.on();
         this.statusPane.on();
         this.terminalPane.on();
-        this.cardPane.on();
         this.spaceScene.visible = true;
     }
 }

@@ -37,8 +37,6 @@ export class Combat {
             list.add(entity);
         }
 
-        this.startRound();
-
         eventSystem.publish("combat:start");
 
         eventSystem.subscribe("player:played", () => {
@@ -131,6 +129,8 @@ export class Combat {
     }
 
     onDeath(entity) {
+        this.map.appendCell(entity.cell.col, entity.cell.row, { occupied: false });
+
         const partySet = this.parties.get(entity.party);
         eventSystem.publish("entity:death", { entity: entity });
 

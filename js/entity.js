@@ -24,7 +24,7 @@ export class Entity extends EventSystem {
 
         // Core Properties
         this.maxActionPoints = 3;
-        this.maxHealth = 100;
+        this.maxHealth = 50;
         this.agility = 1;
         this.rotation = 0;
 
@@ -146,6 +146,12 @@ export class Entity extends EventSystem {
         const path = astar(this.cell, closest.cell, (cell) => map.getAdjacentCells(cell));
         map.appendCell(closest.cell.col, closest.cell.row, { occupied: true });
 
+        if (!path) {
+            this.enqueueAction(actionRegistry.get("skip").init(this, null, { healRatio: 0.05 }));
+            return;
+        }
+
+
         const args = this.ability.args;
 
         if ((this.isCellIn(closest.cell, args.range) && this.actionPoints >= args.cost)) {
@@ -213,6 +219,8 @@ export class Entity extends EventSystem {
 export class RangedEntity extends Entity {
     constructor(center = new Coordinate(0, 0), name = "Empty", type = "empty", party = "empty") {
         super(center, name, type, party);
+        this.maxHealth = 50;
+        this.health = 50;
         this.ability = {
             name: "rangedAttack",
             args: { cost: 1, range: 5, damage: 10, swing: 8, kickback: 0.1, speed: 400 }
@@ -257,6 +265,12 @@ export class RangedEntity extends Entity {
         const path = astar(this.cell, closest.cell, (cell) => map.getAdjacentCells(cell));
         map.appendCell(closest.cell.col, closest.cell.row, { occupied: true });
 
+        if (!path) {
+            this.enqueueAction(actionRegistry.get("skip").init(this, null, { healRatio: 0.05 }));
+            return;
+        }
+
+
         const targetRangeToStopAt = this.actionPoints >= args.cost ? args.range : halfRange;
 
         const truncatedPath = [];
@@ -279,6 +293,8 @@ export class RangedEntity extends Entity {
 export class AreaDamagingEntity extends Entity {
     constructor(center = new Coordinate(0, 0), name = "Empty", type = "empty", party = "empty") {
         super(center, name, type, party);
+        this.maxHealth = 50;
+        this.health = 50;
         this.maxActionPoints = 3;
         this.ability = {
             name: "areaAttack",
@@ -323,6 +339,10 @@ export class AreaDamagingEntity extends Entity {
         map.appendCell(closest.cell.col, closest.cell.row, { occupied: false });
         const path = astar(this.cell, closest.cell, (cell) => map.getAdjacentCells(cell));
         map.appendCell(closest.cell.col, closest.cell.row, { occupied: true });
+        if (!path) {
+            this.enqueueAction(actionRegistry.get("skip").init(this, null, { healRatio: 0.05 }));
+            return;
+        }
 
         const targetRangeToStopAt = this.actionPoints >= args.cost ? args.range : halfRange;
 
@@ -345,6 +365,9 @@ export class AreaDamagingEntity extends Entity {
 export class PlayableEntity extends Entity {
     constructor(center, name, type = "empty", party = "empty") {
         super(center, name, type, party);
+
+        this.maxHealth = 200;
+        this.health = 200;
 
         this.targetAura = false;
         this.blastAura = false;

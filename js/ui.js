@@ -256,7 +256,7 @@ export class CardPane extends Window {
     constructor(canvas) {
         super(canvas);
         this.container = document.getElementById("cardPane");
-        this.container.style.display = "flex";
+        this.container.style.display = "none";
 
         this.selectedCardIndex = -1;
         this.cards = [];

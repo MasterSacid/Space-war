@@ -166,7 +166,7 @@ export class Sound {
     handleActionBlocked = ({ entity }) => this.playSound(["dialogue", entity.type, "refusal"], 0.4);
     handleDamaged = ({ entity }) => this.playSound(["dialogue", entity.type, "hurt"], 0.4);
     handleDied = ({ entity }) => this.playSound(["dialogue", entity.type, "death"], 0.4);
-    handleAttack = () => ({ entity }) => this.playSound(["Spell", entity.type]);
+    handleAttack = ({ entity }) => this.playSound(["Spell", entity.type]);
     handleCameraMovement = () => this.playSound("CameraWoosh");
     handleUISelect = ({ index }) => {
         if (index >= 0) {
