@@ -86,8 +86,8 @@ export class Sound {
                 ]
             },
 
-            Spell:{
-                bloodwitch: [
+            Spell: {
+                "blood-witch": [
                     "./sounds/Spell/bloodwitch/attack_1.wav",
                     "./sounds/Spell/bloodwitch/attack_2.wav",
                 ],
@@ -101,7 +101,7 @@ export class Sound {
                     "./sounds/Spell/magician/attack_2.wav",
                     "./sounds/Spell/magician/attack_3.wav",
                 ],
-                Skeleton: [
+                skeleton: [
                     "./sounds/Spell/Skeleton/attack_1.wav",
                     "./sounds/Spell/Skeleton/attack_2.wav",
                     "./sounds/Spell/Skeleton/attack_3.wav",
@@ -110,7 +110,7 @@ export class Sound {
                     "./sounds/Spell/slime/slime_attack_1.wav",
                     "./sounds/Spell/slime/slime_attack_2.wav",
                 ],
-                speerwoman: [
+                "spear-woman": [
                     "./sounds/Spell/speerwoman/attack_1.wav",
                     "./sounds/Spell/speerwoman/attack_2.wav",
                 ],
@@ -135,6 +135,7 @@ export class Sound {
         this.subscribe("entity:death", this.handleDied);
         this.subscribe("camera:move", this.handleCameraMovement);
         this.subscribe("player:select", this.handleUISelect);
+        this.subscribe("entity:attack", this.handleAttack);
 
         // Publish formats:
         // eventSystem.publish("entity:move",           { entityName: "..." });
@@ -165,6 +166,7 @@ export class Sound {
     handleActionBlocked = ({ entity }) => this.playSound(["dialogue", entity.type, "refusal"], 0.4);
     handleDamaged = ({ entity }) => this.playSound(["dialogue", entity.type, "hurt"], 0.4);
     handleDied = ({ entity }) => this.playSound(["dialogue", entity.type, "death"], 0.4);
+    handleAttack = () => ({ entity }) => this.playSound(["Spell", entity.type]);
     handleCameraMovement = () => this.playSound("CameraWoosh");
     handleUISelect = ({ index }) => {
         if (index >= 0) {
