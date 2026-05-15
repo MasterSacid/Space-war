@@ -13,6 +13,8 @@ export class Graphics {
         this.defaultMapFile = "map1.json";
         this.selectedMapFile = this.defaultMapFile;
         this.currentTileSelection = null;
+        this.currentTileZIndex = 0;
+        this.currentTileCost = 1;
         this.ctx.imageSmoothingEnabled = false;
 
         this.setupTilesets();
@@ -32,6 +34,12 @@ export class Graphics {
         this.tilePalette = new TilePalette(paletteContainer, {
             onSelect: (selection) => {
                 this.currentTileSelection = selection;
+            },
+            onZIndexChange: (zIndex) => {
+                this.currentTileZIndex = zIndex;
+            },
+            onCostChange: (cost) => {
+                this.currentTileCost = cost;
             }
         });
 
@@ -41,7 +49,26 @@ export class Graphics {
                 imageUrl: new URL("../img/spaceship.png", import.meta.url).href,
                 tileSize: 32,
                 tilesPerRow: 10
-            })
+            }),
+            new Tileset({
+                name: "Grass",
+                imageUrl: new URL("../img/grass.png", import.meta.url).href,
+                tileSize: 16,
+                tilesPerRow: 25
+            }),
+            new Tileset({
+                name:"Treasure",
+                imageUrl: new URL("../img/Treasure.png", import.meta.url).href,
+                tileSize: 16,
+                tilesPerRow: 16
+            }),
+                new Tileset({
+                    name:"Trees",
+                    imageUrl: new URL("../img/trees.png", import.meta.url).href,
+                    tileSize: 32,
+                    tilesPerRow: 25
+                }
+            )
         ];
         this.tilesetsByName = new Map(tilesets.map((tileset) => [tileset.name, tileset]));
 
@@ -87,7 +114,7 @@ export class Graphics {
 
     createMapData() {
         return {
-            version: 1,
+            version: 2,
             savedAt: new Date().toISOString(),
             file: this.selectedMapFile,
             cellSize: this.map.cellSize,
@@ -199,6 +226,12 @@ export class Graphics {
         this.saveStatus.textContent = message;
     }
 
+    movePlayerToCell(targetCell) {
+        const oldPos = this.map.worldToCell(this.player.entity.center.x, this.player.entity.center.y);
+        this.map.appendCell(oldPos.col, oldPos.row, { occupied: false, entity: null });
+        this.player.entity.moveToCell(this.map.cellSize, targetCell);
+    }
+
     startPainting(targetCell) {
         this.isPainting = true;
         this.lastPaintedCellKey = null;
@@ -213,13 +246,15 @@ export class Graphics {
     applyBrushToCell(targetCell) {
         if (!this.currentTileSelection) return;
 
-        const cellKey = cellToKey({ col: targetCell.col, row: targetCell.row });
+        const zIndex = this.tilePalette?.selectedZIndex ?? this.currentTileZIndex;
+        const cost = this.tilePalette?.selectedCost ?? this.currentTileCost;
+        const cellKey = `${cellToKey({ col: targetCell.col, row: targetCell.row })}:${zIndex}`;
         if (this.lastPaintedCellKey === cellKey) return;
 
         this.lastPaintedCellKey = cellKey;
 
         if (this.currentTileSelection.type === "eraser") {
-            this.map.clearTile(targetCell.col, targetCell.row);
+            this.map.clearTile(targetCell.col, targetCell.row, zIndex);
             return;
         }
 
@@ -227,7 +262,9 @@ export class Graphics {
             targetCell.col,
             targetCell.row,
             this.currentTileSelection.tileset,
-            this.currentTileSelection.tileIndex
+            this.currentTileSelection.tileIndex,
+            zIndex,
+            cost
         );
     }
 
