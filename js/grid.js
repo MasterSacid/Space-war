@@ -165,26 +165,26 @@ export class Grid {
         }
 
         //--------- Cell Cizme ----------
-        ctx.strokeStyle = "#3a7a3a";
-        ctx.lineWidth = 1;
+        //ctx.strokeStyle = "#3a7a3a";
+        //ctx.lineWidth = 1;
 
-        // Dikey çizgiler
-        for (let col = startCol; col <= endCol + 1; col++) {
-            const x = col * cs;
-            ctx.beginPath();
-            ctx.moveTo(x, startRow * cs);
-            ctx.lineTo(x, (endRow + 1) * cs);
-            ctx.stroke();
-        }
+        //// Dikey çizgiler
+        //for (let col = startCol; col <= endCol + 1; col++) {
+        //    const x = col * cs;
+        //    ctx.beginPath();
+        //    ctx.moveTo(x, startRow * cs);
+        //    ctx.lineTo(x, (endRow + 1) * cs);
+        //    ctx.stroke();
+        //}
 
-        // Yatay çizgiler
-        for (let row = startRow; row <= endRow + 1; row++) {
-            const y = row * cs;
-            ctx.beginPath();
-            ctx.moveTo(startCol * cs, y);
-            ctx.lineTo((endCol + 1) * cs, y);
-            ctx.stroke();
-        }
+        //// Yatay çizgiler
+        //for (let row = startRow; row <= endRow + 1; row++) {
+        //    const y = row * cs;
+        //    ctx.beginPath();
+        //    ctx.moveTo(startCol * cs, y);
+        //    ctx.lineTo((endCol + 1) * cs, y);
+        //    ctx.stroke();
+        //}
 
         for (const entity of this.trackedEntities) {
             if (entity.showAura) {
@@ -293,9 +293,13 @@ export class Grid {
     // Erisilebilir kayitli hucreleri cizer.
     drawEntityAura(ctx, entity) {
         ctx.fillStyle = "rgba(50,90,255,0.3)";
-        for (const cellStr of entity.dijkstraInfo.keys()) {
-            const cell = keyToCell(cellStr);
-            ctx.fillRect(cell.col * this.cellSize, cell.row * this.cellSize, this.cellSize, this.cellSize);
+
+        for (const [cellStr, info] of entity.dijkstraInfo.entries()) {
+
+            if (info.totalCost <= entity.actionPoints) {
+                const cell = keyToCell(cellStr);
+                ctx.fillRect(cell.col * this.cellSize, cell.row * this.cellSize, this.cellSize, this.cellSize);
+            }
         }
     }
 

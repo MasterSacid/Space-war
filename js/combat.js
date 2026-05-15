@@ -86,11 +86,13 @@ export class Combat {
         }
 
         if (entity.status.has("incapacitated")) {
-            entity.turnsIncapacitated--;
-            if (entity.turnsIncapacitated <= 0) {
+            let duration = entity.status.get("incapacitated");
+            duration--;
+            if (entity.turnsLeft <= 0) {
                 entity.status.remove("incapacitated");
+            } else {
+                entity.status.set("incapacitated", duration);
             }
-
             this.processNextTurn();
             return;
         }

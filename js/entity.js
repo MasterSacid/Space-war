@@ -35,7 +35,7 @@ export class Entity extends EventSystem {
         this.health = this.maxHealth;
         this.hasTurn = false;
         this.showAura = false;
-        this.status = new Set();
+        this.status = new Map();
 
         // Bot Ability definition
         this.ability = {
@@ -78,7 +78,7 @@ export class Entity extends EventSystem {
         });
 
         if (this.health <= 0) {
-            this.status.add("dead");
+            this.status.set("dead", true);
             eventSystem.publish("entity:death", { entity: this });
             this.publish("died", { entity: this });
             this.color = "gray";
@@ -186,8 +186,8 @@ export class Entity extends EventSystem {
         ctx.fillRect(this.center.x - this.width / 2, this.center.y - this.height / 2, this.width, this.height);
         if (this.showName) {
             ctx.fillStyle = "black";
-            ctx.fillText(this.name, this.center.x - this.width / 20 * this.name.length, this.center.y + this.width / 1.25, this.width);
-            ctx.fillText(`${Math.ceil(this.center.x)}, ${Math.ceil(this.center.y)}`, this.center.x - this.width / 20 * this.name.length, this.center.y + this.width, this.width);
+            ctx.fillText(this.name, this.center.x - this.width / 20 * this.name.length, this.center.y + this.width / 1.25, this.width * 2);
+            ctx.fillText(`${Math.ceil(this.center.x)}, ${Math.ceil(this.center.y)}`, this.center.x - this.width / 20 * this.name.length, this.center.y + this.width, this.width * 2);
         }
 
         ctx.restore();
@@ -335,10 +335,7 @@ export class PlayableEntity extends Entity {
         this.playerActions = [];
         this.selectedAction = null;
 
-        this.playerActions.push({ name: "meleeAttack", args: { cost: 1, range: 1, damage: 20, swing: 10 } });
-        this.playerActions.push({ name: "rangedAttack", args: { cost: 2, range: 6, damage: 10, swing: 10, kickback: 0.1, speed: 400 } });
         this.playerActions.push({ name: "skip", args: { healRatio: 0.05 } });
-        this.playerActions.push({ name: "areaAttack", args: { cost: 2, range: 7, radius: 2, damage: 10, swing: 20, kickback: -0.1, speed: 400 } });
 
         this.updateActionMenu();
 

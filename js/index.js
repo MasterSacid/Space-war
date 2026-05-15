@@ -10,12 +10,15 @@ import { AnimationPlayer, createAnimationCatalogue } from "./animation.js";
 
 const captain = new PlayableEntity(new Coordinate(-32 - 4 * 64, 32), "Captain");
 captain.party = "goodguysparty";
+captain.playerActions.push({ name: "meleeAttack", args: { cost: 1, range: 1, damage: 20, swing: 10 } });
 
 const wizard = new PlayableEntity(new Coordinate(-32 - 6 * 64, 32), "Weizardo");
 wizard.party = "goodguysparty";
+wizard.playerActions.push({ name: "rangedAttack", args: { cost: 2, range: 6, damage: 10, swing: 10, kickback: 0.1, speed: 400 } });
 
 const woman = new PlayableEntity(new Coordinate(-32 - 5 * 64, 32), "Random Woman");
 woman.party = "goodguysparty";
+woman.playerActions.push({ name: "areaAttack", args: { cost: 2, range: 7, radius: 2, damage: 10, swing: 20, kickback: -0.1, speed: 400 } });
 
 const meleeEntity = new Entity(new Coordinate(-96, 32), "Melee");
 meleeEntity.party = "enemies"
