@@ -68,8 +68,10 @@ export class Entity extends EventSystem {
     }
 
     takeDamage(damage) {
+        if (this.status.has("dead")) return;
         this.health -= damage;
-        eventSystem.publish("entity:takeDamage", {
+        eventSystem.publish("hurt", {
+            entityName: this.name,
             eventAction: "takeDamage",
             health: this.health,
             damage: damage
@@ -390,7 +392,7 @@ export class PlayableEntity extends Entity {
 }
 
 export class Player extends EventSystem {
-    constructor(canvas, entity = new Entity(new Coordinate(0, 0), "Player"), viewport) {
+    constructor(canvas, entity = new Entity(new Coordinate(32, 32), "Player"), viewport) {
         super();
         this.canvas = canvas;
         this.entity = entity;
@@ -458,11 +460,14 @@ export class Player extends EventSystem {
             this.answer[key] = [];
         }
 
+        if (!this.entity.isCellIn(cell, value.range)) {
+            console.log("Selection is out of range!");
+            return;
+        }
+
         if (value.type === "entity") {
             if (entity != null) {
                 this.answer[key].push(entity);
-            } else {
-                console.log("Invalid target: This action requires you to click an Entity.");
             }
         } else if (value.type === "cell" && cell != null) {
             this.answer[key].push(cell);

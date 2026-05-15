@@ -178,7 +178,6 @@ export class Grid {
 
         this.drawActionOverlays(ctx, this.player.entity, this.hoveredCell, this.player.entity.selectedAction?.name);
 
-
         // It is here to debug occupied cell problems. Don't delete, might need later on
         //ctx.fillStyle = "rgba(0,0,0,0.5)";
         //for (let i = -20; i < 20; i++) {
@@ -200,14 +199,16 @@ export class Grid {
         if (!actionInstance) return;
 
         const selectionRules = actionInstance.selection(actionDef.args || {});
-        if (!selectionRules) return;
+        if (!selectionRules || !selectionRules.target) return;
 
-        if (selectionRules.targetAura) {
-            this.drawTargetAura(ctx, activeEntity, selectionRules.targetAura.range);
+        const targetReq = selectionRules.target;
+
+        if (targetReq.showTargetAura) {
+            this.drawTargetAura(ctx, activeEntity, targetReq.range);
         }
 
-        if (selectionRules.blastAura) {
-            this.drawBlastAura(ctx, hoveredCell, selectionRules.blastAura.radius);
+        if (targetReq.showBlastAura) {
+            this.drawBlastAura(ctx, hoveredCell, targetReq.blastRadius);
         }
     }
 

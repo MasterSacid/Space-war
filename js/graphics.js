@@ -57,17 +57,17 @@ export class Graphics {
                 tilesPerRow: 25
             }),
             new Tileset({
-                name:"Treasure",
+                name: "Treasure",
                 imageUrl: new URL("../img/Treasure.png", import.meta.url).href,
                 tileSize: 16,
                 tilesPerRow: 16
             }),
-                new Tileset({
-                    name:"Trees",
-                    imageUrl: new URL("../img/trees.png", import.meta.url).href,
-                    tileSize: 32,
-                    tilesPerRow: 25
-                }
+            new Tileset({
+                name: "Trees",
+                imageUrl: new URL("../img/trees.png", import.meta.url).href,
+                tileSize: 32,
+                tilesPerRow: 25
+            }
             )
         ];
         this.tilesetsByName = new Map(tilesets.map((tileset) => [tileset.name, tileset]));
@@ -267,5 +267,4 @@ export class Graphics {
             cost
         );
     }
-
 }

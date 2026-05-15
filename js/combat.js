@@ -126,6 +126,8 @@ export class Combat {
 
     onDeath(entity) {
         const partySet = this.parties.get(entity.party);
+        eventSystem.publish("death", { entityName: entity.name });
+
         if (partySet) {
             partySet.delete(entity);
             if (partySet.size === 0) {

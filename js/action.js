@@ -104,7 +104,10 @@ export class MoveAction extends Action {
         this.active = false;
         this.pathIndex = 0;
         this.entity.moving = false;
+
         this.entity.publish("action:end", { entity: this.entity });
+
+        eventSystem.publish("move:end", { entityName: this.entity.name });
     }
 
     moveTo(targetCell) {
@@ -116,7 +119,7 @@ export class MoveAction extends Action {
 
         eventSystem.publish("entity:move", {
             eventAction: "move",
-            entityName: this.name
+            entityName: this.entity.name
         });
 
         this.entity.publish("move:start", {});
@@ -155,9 +158,14 @@ export class MeleeAttackAction extends Action {
     }
 
     selection(args = {}) {
+        const range = args.range || this.args?.range || 1;
         return {
-            targetAura: { range: args.range || 1, targetAura: true },
-            target: { type: "entity", amount: 1 }
+            target: {
+                type: "entity",
+                amount: 1,
+                range: range,
+                showTargetAura: true
+            }
         };
     }
 
@@ -190,6 +198,7 @@ export class MeleeAttackAction extends Action {
     end() {
         this.active = false;
         this.entity.publish("action:end", { entity: this.entity });
+        eventSystem.publish("move:end", { entityName: this.entity.name });
     }
 
     moveToTarget() {
@@ -220,7 +229,7 @@ export class MeleeAttackAction extends Action {
         this.entity.actionPoints -= this.args.cost;
         const damage = this.args.damage + Math.round(Math.random() * this.args.swing);
         this.target.takeDamage(damage);
-        eventSystem.publish("entity:meleeAttack", { eventAction: "meleeAttack" });
+        eventSystem.publish("entity:attack", { entityName: this.entity.name });
     }
 
     update(dt) {
@@ -249,10 +258,16 @@ export class MeleeAttackAction extends Action {
 export class RangedAttackAction extends Action {
     constructor() { super(); }
 
-    selection(args = {}) {
+    selection(args) {
+        const safeArgs = args || this.args || {};
+        const range = safeArgs.range || 1;
         return {
-            targetAura: { range: args.range || 1, targetAura: true },
-            target: { type: "entity", amount: 1 }
+            target: {
+                type: "entity",
+                amount: 1,
+                range: range,
+                showTargetAura: true
+            }
         };
     }
 
@@ -312,6 +327,7 @@ export class RangedAttackAction extends Action {
 
     end() {
         this.entity.publish("action:end", { entity: this.entity });
+        eventSystem.publish("move:end", { entityName: this.name });
         this.active = false;
     }
 
@@ -319,7 +335,7 @@ export class RangedAttackAction extends Action {
         this.entity.actionPoints -= this.args.cost;
         const damage = this.args.damage + Math.round(Math.random() * this.args.swing);
         this.target.takeDamage(damage);
-        eventSystem.publish("entity:rangedAttack", { eventAction: "rangedAttack" });
+        eventSystem.publish("entity:attack", { entityName: this.name });
     }
 
     updateLerpProjectile(dt) {
@@ -393,9 +409,17 @@ export class AreaAttackAction extends RangedAttackAction {
     constructor() { super(); }
 
     selection(args = {}) {
+        const radius = args.radius || this.args?.radius || 1;
+        const range = args.range || this.args?.range || 1;
         return {
-            blastAura: { radius: args.radius || 1, range: args.range, targetAura: true },
-            target: { type: "cell", amount: 1 }
+            target: {
+                type: "cell",
+                amount: 1,
+                range: range,
+                showTargetAura: true,
+                showBlastAura: true,
+                blastRadius: radius
+            }
         };
     }
 
@@ -416,7 +440,7 @@ export class AreaAttackAction extends RangedAttackAction {
             const distance = manhattan(e.cell, this.impactCell);
             if (distance <= this.radius) {
                 e.takeDamage(damage);
-                eventSystem.publish("entity:areaAttack", { eventAction: "areaAttack", cell: this.impactCell });
+                eventSystem.publish("entity:attack", { entityName: this.entity.name });
             }
         });
     }
