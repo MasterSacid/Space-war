@@ -3,78 +3,69 @@ import { eventSystem } from "./eventSystem.js";
 export class Sound {
     constructor() {
         this.subscriptions = [];
+        this.audioCache = new Map(); // path -> Audio
 
         this.soundCatalogue = {
             move: [
-                new Audio("./sounds/movement/metal1.ogg"),
-                new Audio("./sounds/movement/metal2.ogg"),
-                new Audio("./sounds/movement/metal3.ogg"),
-                new Audio("./sounds/movement/metal4.ogg"),
-                new Audio("./sounds/movement/metal5.ogg")
+                "./sounds/movement/metal1.ogg",
+                "./sounds/movement/metal2.ogg",
+                "./sounds/movement/metal3.ogg",
+                "./sounds/movement/metal4.ogg",
+                "./sounds/movement/metal5.ogg",
             ],
             dialogue: {
                 SpearWoman: {
-                    //Tur sırası bie gelince söylenir
-                    greeting:[
-                        new Audio("./sounds/dialogue/woman/confirmation_9_karen.wav"),
-                        new Audio("./sounds/dialogue/woman/greeting_5_karen.wav"),
-                        new Audio("./sounds/dialogue/woman/greeting_10_karen.wav")
+                    greeting: [
+                        "./sounds/dialogue/woman/confirmation_9_karen.wav",
+                        "./sounds/dialogue/woman/greeting_5_karen.wav",
+                        "./sounds/dialogue/woman/greeting_10_karen.wav",
                     ],
-                    //Eylem yapılamazsa
-                    refusal:[
-                        new Audio("./sounds/dialogue/woman/refusal_5_karen.wav"),
-                        new Audio("./sounds/dialogue/woman/refusal_3_karen.wav"),
-                        new Audio("./sounds/dialogue/woman/refusal_8_karen.wav")
+                    refusal: [
+                        "./sounds/dialogue/woman/refusal_5_karen.wav",
+                        "./sounds/dialogue/woman/refusal_3_karen.wav",
+                        "./sounds/dialogue/woman/refusal_8_karen.wav",
                     ],
-                    //Hasar yersen
-                    hurt:[
-                        new Audio("./sounds/dialogue/woman/damage_7_karen.wav"),
-                        new Audio("./sounds/dialogue/woman/damage_6_karen.wav")
+                    hurt: [
+                        "./sounds/dialogue/woman/damage_7_karen.wav",
+                        "./sounds/dialogue/woman/damage_6_karen.wav",
                     ],
-                    //Ölünce
-                    death: [new Audio("./sounds/dialogue/woman/death_4_karen.wav")]
+                    death: ["./sounds/dialogue/woman/death_4_karen.wav"],
                 },
-                Magician:{
-                    greeting:[
-                        new Audio("./sounds/dialogue/magician/confirmation_1_ian.wav"),
-                        new Audio("./sounds/dialogue/magician/greeting_4_ian.wav"),
-                        new Audio("./sounds/dialogue/magician/greeting_10_ian.wav")
+                Magician: {
+                    greeting: [
+                        "./sounds/dialogue/magician/confirmation_1_ian.wav",
+                        "./sounds/dialogue/magician/greeting_4_ian.wav",
+                        "./sounds/dialogue/magician/greeting_10_ian.wav",
                     ],
-                    refusal:[
-                        new Audio("./sounds/dialogue/magician/refusal_5_ian.wav"),
-                        new Audio("./sounds/dialogue/magician/refusal_3_ian.wav"),
-                        new Audio("./sounds/dialogue/magician/refusal_9_ian.wav")
+                    refusal: [
+                        "./sounds/dialogue/magician/refusal_5_ian.wav",
+                        "./sounds/dialogue/magician/refusal_3_ian.wav",
+                        "./sounds/dialogue/magician/refusal_9_ian.wav",
                     ],
-                    hurt:[
-                        new Audio("./sounds/dialogue/magician/damage_4_ian.wav"),
-                        new Audio("./sounds/dialogue/magician/damage_2_ian.wav"),
-
+                    hurt: [
+                        "./sounds/dialogue/magician/damage_4_ian.wav",
+                        "./sounds/dialogue/magician/damage_2_ian.wav",
                     ],
-                    death:[
-                        new Audio("./sounds/dialogue/magician/death_2_ian.wav")
-                    ]
+                    death: ["./sounds/dialogue/magician/death_2_ian.wav"],
                 },
-
-                Captain:{
-                    greeting:[
-                        new Audio("./sounds/dialogue/captain/completion_4_sean.wav"),
-                        new Audio("./sounds/dialogue/captain/greeting_4_sean.wav"),
-                        new Audio("./sounds/dialogue/captain/greeting_9_sean.wav")
+                Captain: {
+                    greeting: [
+                        "./sounds/dialogue/captain/completion_4_sean.wav",
+                        "./sounds/dialogue/captain/greeting_4_sean.wav",
+                        "./sounds/dialogue/captain/greeting_9_sean.wav",
                     ],
-                    refusal:[
-                        new Audio("./sounds/dialogue/captain/refusal_1_sean.wav"),
-                        new Audio("./sounds/dialogue/captain/refusal_3_sean.wav"),
-                        new Audio("./sounds/dialogue/captain/refusal_5_sean.wav")
+                    refusal: [
+                        "./sounds/dialogue/captain/refusal_1_sean.wav",
+                        "./sounds/dialogue/captain/refusal_3_sean.wav",
+                        "./sounds/dialogue/captain/refusal_5_sean.wav",
                     ],
-                    hurt:[
-                        new Audio("./sounds/dialogue/captain/damage_3_sean.wav"),
-                        new Audio("./sounds/dialogue/captain/damage_6_sean.wav")
+                    hurt: [
+                        "./sounds/dialogue/captain/damage_3_sean.wav",
+                        "./sounds/dialogue/captain/damage_6_sean.wav",
                     ],
-                    death:[
-                        new Audio("./sounds/dialogue/captain/death_2_sean.wav")
-                    ]
-                }
-            }
+                    death: ["./sounds/dialogue/captain/death_2_sean.wav"],
+                },
+            },
         };
 
         this.musicCatalogue = {
@@ -85,62 +76,65 @@ export class Sound {
         }
         this.currentMusic = null;
 
-        eventSystem.subscribe("entity:move", this.handleMovement);
-        eventSystem.subscribe("entity:turn", this.handleDialogue);
 
-        this.subscriptions.push(
-            ["entity:move", this.handleMovement]
-        );
+        this.subscribe("entity:move", this.handleMovement);
+
+        // Dialog Events
+        this.subscribe("entity:turn-start",     this.handleTurnStart);
+        this.subscribe("entity:action-blocked", this.handleActionBlocked);
+        this.subscribe("entity:damaged",        this.handleDamaged);
+        this.subscribe("entity:died",           this.handleDied);
+
+        // Publish formats:
+        // eventSystem.publish("entity:move",           { entityName: "..." });
+        // eventSystem.publish("entity:turn-start",     { entityName: "SpearWoman" });
+        // eventSystem.publish("entity:action-blocked", { entityName: "Magician"   });
+        // eventSystem.publish("entity:damaged",        { entityName: "Captain"    });
+        // eventSystem.publish("entity:died",           { entityName: "SpearWoman" });
     }
 
-    handleMovement = (data) => {
-        this.playSound("move");
-    };
-
-    handleDialogue = (data) => {
-        if (data.eventAction !== "dialogue") return;
-        this.playDialogue(data.entityName, data.dialogueType);
-    };
-
-    //eventSystem.publish("entity:turn", {
-    //     eventAction: "dialogue",
-    //     entityName: "SpearWoman",
-    //     dialogueType: "greeting",
-    // });
-
-    //Bu formatta publish etmen lazım
-
-    playDialogue(entityName, dialogueType, volume = 0.4) {
-        const characterLines = this.soundCatalogue.dialogue[entityName];
-        if (!characterLines) {
-            console.log(`Karakter ${entityName} icin diyalog yok`);
-            return;
-        }
-
-        const lines = characterLines[dialogueType];
-        if (!lines || lines.length === 0) {
-            console.log(`${entityName} icin ${dialogueType} diyalogu yok`);
-            return;
-        }
-
-        const picked = lines[Math.floor(Math.random() * lines.length)];
-        const instance = picked.cloneNode();
-        instance.volume = volume;
-        instance.play().catch(() => {});
+    subscribe(eventName, handler) {
+        eventSystem.subscribe(eventName, handler);
+        this.subscriptions.push([eventName, handler]);
     }
 
-    playSound(name,volume = 0.1) {
-        const sound = this.soundCatalogue[name];
-        if (!sound) {
-            console.log(`Ses ${name} bulunamadi`);
+    // Path'i Audio nesnesine çevirir, ilk seferde yaratır ve cache'ler
+    getAudio(path) {
+        let audio = this.audioCache.get(path);
+        if (!audio) {
+            audio = new Audio(path);
+            this.audioCache.set(path, audio);
+        }
+        return audio;
+    }
+
+    // --- Handlers ---
+    handleMovement      = ()  => this.playSound("move");
+    handleTurnStart     = (d) => this.playSound(["dialogue", d.entityName, "greeting"], 0.4);
+    handleActionBlocked = (d) => this.playSound(["dialogue", d.entityName, "refusal"],  0.4);
+    handleDamaged       = (d) => this.playSound(["dialogue", d.entityName, "hurt"],     0.4);
+    handleDied          = (d) => this.playSound(["dialogue", d.entityName, "death"],    0.4);
+
+    playSound(path, volume = 0.1) {
+        const keys = Array.isArray(path) ? path : [path];
+
+        let node = this.soundCatalogue;
+        for (const key of keys) {
+            node = node?.[key];
+        }
+
+        if (!node) {
+            console.log(`Ses ${keys.join(".")} bulunamadi`);
             return;
         }
 
-        const picked = Array.isArray(sound)
-            ? sound[Math.floor(Math.random() * sound.length)]
-            : sound;
+        const list = Array.isArray(node) ? node : [node];
+        if (list.length === 0) return;
 
-        const instance = picked.cloneNode();
+        const pickedPath = list[Math.floor(Math.random() * list.length)];
+        const audio = this.getAudio(pickedPath);
+
+        const instance = audio.cloneNode();
         instance.volume = volume;
         instance.play().catch(() => {});
     }
@@ -151,9 +145,7 @@ export class Sound {
             console.log(`Muzik ${name} bulunamadi`);
             return;
         }
-
         this.stopMusic();
-
         track.volume = volume;
         track.play().catch(() => {});
         this.currentMusic = track;
@@ -177,5 +169,6 @@ export class Sound {
             eventSystem.unsubscribe(eventName, handler);
         }
         this.subscriptions = [];
+        this.audioCache.clear();
     }
 }
