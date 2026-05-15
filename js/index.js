@@ -50,6 +50,19 @@ class App {
         this.initialMapData = { mapList, currentFile: initialFile, tiles: initialTiles };
     }
 
+    async endingVictory() {
+        await this.addText("[G8000]: Congratulations on not dying.", 20);
+        await this.addText("[G8000]: Let's get you out of this place.", 20);
+        await this.addDialog("Victory", "Congratulations. You survived until G8000 has saved you.", "Win Again", () => location.reload());
+    }
+
+    async endingDefeat() {
+        await this.addText("[G8000]: Told you not to die ", 20);
+        await this.addText("...", 1);
+        await this.addDialog("Defeat", "You are lost and you have failed G8000.", "Try Again", () => location.reload());
+    }
+
+
     async start() {
         this.mainMenu = new MainMenu(this.canvas);
         this.spaceScene = new SpaceScene(this.canvas);
@@ -71,7 +84,7 @@ class App {
         );
 
         this.sound = new Sound();
-        this.sound.playMusic("main", 0.07);
+        //this.sound.playMusic("main", 0.07);
         this.graphics = new Graphics(this.canvas, this.player, this.map, this.tilesets, this.initialMapData);
 
         this.combat = new Combat(this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity], this.map);
@@ -178,6 +191,16 @@ class App {
     }
 
     async story() {
+        await sleep(200);
+        await this.addText("Systems rebooting...", 6);
+        await sleep(2000);
+        this.statusPane.G8000Online();
+        await this.addText("Systems reboot complete", 20);
+        await sleep(1000);
+        await this.addText("[G8000]: You are finally awake captain.", 20);
+        await this.addText("[G8000]: After the last missile the alien ships have sent us, you banged your head pretty bad.", 20);
+        await this.addText("[G8000]: The ship is crumbling. You need to get off this ship immediately. I will take care of that now.", 20);
+        await this.addText("[G8000]: You are now being transported to a planet with anomilies. Take care until the rescue teams come.", 20);
         await this.addDialog("A Call to Arms", "", "To battle!", () => {
             this.turnOffAllOverlays();
         });
@@ -190,7 +213,14 @@ class App {
         } else {
             await this.tempTextPane.showMessage("DEFEAT", 40, 2000);
         }
+
         await sleep(4000);
+
+        if (winner === this.player.entity.party) {
+            this.endingVictory();
+        } else {
+            this.endingDefeat();
+        }
         this.turnOnAllOverlays();
         this.cardPane.off();
     }

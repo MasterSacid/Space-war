@@ -1,4 +1,4 @@
-import { dijkstra, keyToCell, manhattan, Heap } from "./utils.js";
+import { dijkstra, keyToCell, manhattan, Heap, lerp } from "./utils.js";
 import { eventSystem } from "./eventSystem.js";
 
 export class Combat {
@@ -44,10 +44,8 @@ export class Combat {
         eventSystem.subscribe("player:played", () => {
             if (this.player.hasTurn) {
                 if (this.player.entity.actionPoints > 0) {
-                    console.log('has action points');
                     this.actionLoop();
                 } else {
-                    console.log('has no action points');
                     this.processNextTurn();
                 }
             }
@@ -99,7 +97,6 @@ export class Combat {
                 eventSystem.publish("entity:turn-start", { entity: entity })
             }
             this.player.entity = entity;
-            this.player.viewport.coordinate = entity.center;
         }
 
         this.activeEntity = entity;
@@ -182,5 +179,22 @@ export class Combat {
         set.add(entity);
     }
 
-    update() { }
+    update(dt) {
+        if (this.activeEntity && this.player && this.player.viewport) {
+            if (this.player.viewport.coordinate === this.activeEntity.center) {
+                this.player.viewport.coordinate = {
+                    x: this.activeEntity.center.x,
+                    y: this.activeEntity.center.y
+                };
+            }
+
+            const current = this.player.viewport.coordinate;
+            const target = this.activeEntity.center;
+
+            const speed = 0.1;
+
+            current.x = lerp(current.x, target.x, speed);
+            current.y = lerp(current.y, target.y, speed);
+        }
+    }
 }

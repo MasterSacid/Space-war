@@ -69,7 +69,7 @@ export class Sound {
         };
 
         this.musicCatalogue = {
-            //main: new Audio("./sounds/bgm.wav"),
+            main: new Audio("./sounds/bgm.wav"),
         };
         for (const track of Object.values(this.musicCatalogue)) {
             track.loop = true;
