@@ -93,48 +93,33 @@ export class AnimationPlayer {
 
         this.subscriptions = [];
 
-        eventSystem.subscribe("entity:move", this.handleMove);
-        eventSystem.subscribe("entity:attack", this.handleMelee);
         eventSystem.subscribe("entity:idle", this.handleIdle);
-        eventSystem.subscribe("move:end", this.handleMoveEnd);
-        eventSystem.subscribe("entity:death", this.handleDeath);
+        eventSystem.subscribe("entity:move:start", this.handleMove);
+        eventSystem.subscribe("entity:move:end", this.handleMoveEnd);
+        eventSystem.subscribe("entity:attack", this.handleAttack);
         eventSystem.subscribe("entity:damaged", this.handleHurt);
-
-        this.subscriptions.push(
-            ["entity:move", this.handleMove],
-            ["entity:meleeAttack", this.handleMelee],
-            ["entity:idle", this.handleIdle],
-        );
+        eventSystem.subscribe("entity:death", this.handleDeath);
     }
 
+    handleIdle = (data) => {
+        if (!data || data.entity !== this.entity.type) return;
+        if (this.isLocked) return;
+        this.play(this.defaultAnimation, { loop: true });
+    };
     handleMove = (data) => {
-        if (!data || data.entityName !== this.entity.resourceName) return;
+        if (!data || data.entity !== this.entity) return;
         if (this.isLocked) return;
         this.play("run", { loop: true });
     };
 
-    handleIdle = (data) => {
-        if (!data || data.entityName !== this.entity.resourceName) return;
-        if (this.isLocked) return;
-        this.play(this.defaultAnimation, { loop: true });
-    };
-
     handleMoveEnd = (data) => {
         if (this.isLocked) return;
-        if (!data || data.entityName !== this.entity.resourceName) return;
+        if (!data || data.entity !== this.entity.type) return;
         this.play(this.defaultAnimation, { loop: true });
     };
-    handleDeath = (data) => {
-        if (!data || data.entityName !== this.entity.resourceName) return;
-        this.isLocked = true;
 
-        this.play("death", {
-            loop: false,
-        });
-    };
-
-    handleMelee = (data) => {
-        if (!data || data.entityName !== this.entity.resourceName) return;
+    handleAttack = (data) => {
+        if (!data || data.entity !== this.entity.type) return;
 
         this.isLocked = true;
 
@@ -148,7 +133,7 @@ export class AnimationPlayer {
     };
 
     handleHurt = (data) => {
-        if (!data || data.entityName !== this.entity.resourceName) return;
+        if (!data || data.entity !== this.entity.type) return;
 
         this.isLocked = true;
 
@@ -158,6 +143,15 @@ export class AnimationPlayer {
                 this.isLocked = false;
                 this.play(this.defaultAnimation, { loop: true });
             },
+        });
+    };
+
+    handleDeath = (data) => {
+        if (!data || data.entity !== this.entity.type) return;
+        this.isLocked = true;
+
+        this.play("death", {
+            loop: false,
         });
     };
 
@@ -230,12 +224,12 @@ export class AnimationPlayer {
 
 export function createAnimationCatalogue() {
 
-    const bloodWizard = new AnimationSet({ flipped: true, scaleX: 4.5, scaleY: 4.5, offsetY: 64 });
-    bloodWizard.addAnimation("idle", { imageUrl: "./animations/charachters/blood_wizard/wizard_idle.png", frameCount: 10 });
-    bloodWizard.addAnimation("run", { imageUrl: "./animations/charachters/blood_wizard/wizard_run.png", frameCount: 8 });
-    bloodWizard.addAnimation("attack", { imageUrl: "./animations/charachters/blood_wizard/wizard_attack.png", frameCount: 13 });
-    bloodWizard.addAnimation("death", { imageUrl: "./animations/charachters/blood_wizard/wizard_death.png", frameCount: 18 });
-    bloodWizard.addAnimation("hurt", { imageUrl: "./animations/charachters/blood_wizard/wizard_hurt.png", frameCount: 3 });
+    const bloodWitch = new AnimationSet({ flipped: true, scaleX: 4.5, scaleY: 4.5, offsetY: 64 });
+    bloodWitch.addAnimation("idle", { imageUrl: "./animations/charachters/blood_wizard/wizard_idle.png", frameCount: 10 });
+    bloodWitch.addAnimation("run", { imageUrl: "./animations/charachters/blood_wizard/wizard_run.png", frameCount: 8 });
+    bloodWitch.addAnimation("attack", { imageUrl: "./animations/charachters/blood_wizard/wizard_attack.png", frameCount: 13 });
+    bloodWitch.addAnimation("death", { imageUrl: "./animations/charachters/blood_wizard/wizard_death.png", frameCount: 18 });
+    bloodWitch.addAnimation("hurt", { imageUrl: "./animations/charachters/blood_wizard/wizard_hurt.png", frameCount: 3 });
 
     const skeleton = new AnimationSet({ flipped: true, scaleX: 3, scaleY: 2.25 });
     skeleton.addAnimation("idle", { imageUrl: "./animations/charachters/skeleton/skeleton_idle.png", frameCount: 8 });
@@ -258,12 +252,12 @@ export function createAnimationCatalogue() {
     cyborg.addAnimation("death", { imageUrl: "./animations/charachters/cyborg/cyborg_death.png", frameCount: 6 });
     cyborg.addAnimation("hurt", { imageUrl: "./animations/charachters/cyborg/cyborg_hurt.png", frameCount: 2 });
 
-    const spearwoman = new AnimationSet({ flipped: false, scaleX: 3.8, scaleY: 3.8, offsetY: 24, offsetX: 16 });
-    spearwoman.addAnimation("attack", { imageUrl: "./animations/charachters/spearwoman/woman_attack.png", frameCount: 22, frameDuration: 0.08 });
-    spearwoman.addAnimation("idle", { imageUrl: "./animations/charachters/spearwoman/woman_idle.png", frameCount: 8 });
-    spearwoman.addAnimation("run", { imageUrl: "./animations/charachters/spearwoman/woman_run.png", frameCount: 8 });
-    spearwoman.addAnimation("death", { imageUrl: "./animations/charachters/spearwoman/woman_death.png", frameCount: 9 });
-    spearwoman.addAnimation("hurt", { imageUrl: "./animations/charachters/spearwoman/woman_hurt.png", frameCount: 4 });
+    const spearWoman = new AnimationSet({ flipped: false, scaleX: 3.8, scaleY: 3.8, offsetY: 24, offsetX: 16 });
+    spearWoman.addAnimation("attack", { imageUrl: "./animations/charachters/spearwoman/woman_attack.png", frameCount: 22, frameDuration: 0.08 });
+    spearWoman.addAnimation("idle", { imageUrl: "./animations/charachters/spearwoman/woman_idle.png", frameCount: 8 });
+    spearWoman.addAnimation("run", { imageUrl: "./animations/charachters/spearwoman/woman_run.png", frameCount: 8 });
+    spearWoman.addAnimation("death", { imageUrl: "./animations/charachters/spearwoman/woman_death.png", frameCount: 9 });
+    spearWoman.addAnimation("hurt", { imageUrl: "./animations/charachters/spearwoman/woman_hurt.png", frameCount: 4 });
 
     const magician = new AnimationSet({ flipped: false, scaleX: 3, scaleY: 3 });
     magician.addAnimation("idle", { imageUrl: "./animations/charachters/magician/magician_idle.png", frameCount: 8 });
@@ -276,19 +270,19 @@ export function createAnimationCatalogue() {
 
     return {
         sets: {
-            "BloodWizard": bloodWizard,
-            "Skeleton": skeleton,
-            "Slime": slime,
-            "Captain": cyborg,
-            "SpearWoman": spearwoman,
-            "Magician": magician
+            "blood-witch": bloodWitch,
+            "skeleton": skeleton,
+            "slime": slime,
+            "cyborg": cyborg,
+            "spear-woman": spearWoman,
+            "magician": magician
         },
         ready: () => Promise.all(
-            [bloodWizard.ready(),
+            [bloodWitch.ready(),
             skeleton.ready(),
             slime.ready(),
             cyborg.ready(),
-            spearwoman.ready(),
+            spearWoman.ready(),
             magician.ready()
             ]),
     };

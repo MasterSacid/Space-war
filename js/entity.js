@@ -4,7 +4,7 @@ import { eventSystem, EventSystem } from "./eventSystem.js";
 import { app } from "./index.js";
 
 export class Entity extends EventSystem {
-    constructor(center = new Coordinate(0, 0), name = "Empty") {
+    constructor(center = new Coordinate(0, 0), name = "Empty", type = "empty", party = "empty") {
         super();
 
         this.showName = true;
@@ -30,6 +30,7 @@ export class Entity extends EventSystem {
 
         // Combat info
         this.name = name;
+        this.type = type;
         this.resourceName = this.name;
         this.party = this.name;
         this.actionPoints = 0;
@@ -195,8 +196,8 @@ export class Entity extends EventSystem {
 }
 
 export class RangedEntity extends Entity {
-    constructor(center = new Coordinate(0, 0), name = "Empty") {
-        super(center, name);
+    constructor(center = new Coordinate(0, 0), name = "Empty", type = "empty", party = "empty") {
+        super(center, name, type, party);
         this.ability = {
             name: "rangedAttack",
             args: { cost: 1, range: 5, damage: 10, swing: 8, kickback: 0.1, speed: 400 }
@@ -261,8 +262,8 @@ export class RangedEntity extends Entity {
 
 
 export class AreaDamagingEntity extends Entity {
-    constructor(center = new Coordinate(0, 0), name = "Empty") {
-        super(center, name);
+    constructor(center = new Coordinate(0, 0), name = "Empty", type = "empty", party = "empty") {
+        super(center, name, type, party);
         this.maxActionPoints = 3;
         this.ability = {
             name: "areaAttack",
@@ -327,8 +328,8 @@ export class AreaDamagingEntity extends Entity {
 }
 
 export class PlayableEntity extends Entity {
-    constructor(center, name) {
-        super(center, name);
+    constructor(center, name, type = "empty", party = "empty") {
+        super(center, name, type, party);
 
         this.targetAura = false;
         this.blastAura = false;
@@ -454,7 +455,7 @@ export class Player extends EventSystem {
         if (value.range !== undefined) {
             if (!this.entity.isCellIn(cell, value.range)) {
                 console.log("Invalid target: Selection is out of range!");
-                eventSystem.publish("entity:action-blocked", { entityName: this.entity.resourceName });
+                eventSystem.publish("entity:action-blocked", { entity: this.entity });
                 return;
             }
         }
@@ -466,19 +467,19 @@ export class Player extends EventSystem {
 
                 if (value.alignment === "enemy" && entity.party === this.entity.party) {
                     console.log("Invalid target: You cannot attack an ally!");
-                    eventSystem.publish("entity:action-blocked", { entityName: this.entity.resourceName });
+                    eventSystem.publish("entity:action-blocked", { entity: this.entity });
                     return;
                 }
                 if (value.alignment === "ally" && entity.party !== this.entity.party) {
                     console.log("Invalid target: You can only use this on an ally!");
-                    eventSystem.publish("entity:action-blocked", { entityName: this.entity.resourceName });
+                    eventSystem.publish("entity:action-blocked", { entity: this.entity });
                     return;
                 }
 
                 this.answer[key].push(entity);
             } else {
                 console.log("Invalid target: This action requires you to click an Entity.");
-                eventSystem.publish("entity:action-blocked", { entityName: this.entity.resourceName });
+                eventSystem.publish("entity:action-blocked", { entity: this.entity });
             }
         } else if (value.type === "cell" && cell != null) {
             this.answer[key].push(cell);
@@ -495,7 +496,7 @@ export class Player extends EventSystem {
 
     played() {
         eventSystem.publish("player:played", {});
-        this.hasAction = false;
+        this.hasTurn = false;
         this.entity.showAura = false;
         this.targetAura = false;
         this.blastAura = false;

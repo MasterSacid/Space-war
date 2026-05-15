@@ -44,8 +44,10 @@ export class Combat {
         eventSystem.subscribe("player:played", () => {
             if (this.player.hasTurn) {
                 if (this.player.entity.actionPoints > 0) {
+                    console.log('has points');
                     this.actionLoop();
                 } else {
+                    console.log('has none');
                     this.processNextTurn();
                 }
             }
@@ -99,7 +101,7 @@ export class Combat {
 
 
         if (entity.party === this.player.entity.party && Math.random() < 1 / 3) {
-            eventSystem.publish("entity:turn-start", { entityName: entity.resourceName })
+            eventSystem.publish("entity:turn-start", { entity: entity })
         }
         this.activeEntity = entity;
 
@@ -132,7 +134,7 @@ export class Combat {
 
     onDeath(entity) {
         const partySet = this.parties.get(entity.party);
-        eventSystem.publish("entity:death", { entityName: entity.resourceName });
+        eventSystem.publish("entity:death", { entity: entity });
 
         if (partySet) {
             partySet.delete(entity);

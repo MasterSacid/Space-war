@@ -3,16 +3,49 @@ import { Coordinate, lerp, manhattan } from './utils.js';
 import { app } from './index.js';
 import { eventSystem } from './eventSystem.js';
 
+export class Lerp {
+    constructor(coordinate, end, start = coordinate.clone(), duration = 1) {
+        this.coordinate = coordinate;
+        this.src = start;
+        this.dst = end;
+        this.duration = duration;
+
+        this.active = false;
+        this.progress = 0;
+        this.lerper = (t) => 1 - (1 - t) * (1 - t);
+    }
+
+    start() {
+        this.active = true;
+        this.progress = 0;
+        return this;
+    }
+
+    end() {
+        this.active = false;
+        return this;
+    }
+
+    update(dt) {
+        if (!this.active) return true;
+
+        this.progress += dt / this.duration;
+        if (this.progress >= 1) {
+            this.progress = 1;
+            this.end();
+        }
+
+        const t = this.lerper(this.progress);
+        this.coordinate.x = lerp(this.src.x, this.dst.x, t);
+        this.coordinate.y = lerp(this.src.y, this.dst.y, t);
+
+        return false;
+    }
+}
 
 class Action {
     constructor() {
-        this.entity;
-        this.lerpDuration;
-        this.lerpProgress;
-        this.lerping = false;
-        this.lerpEnd = { x: 0, y: 0 };
-        this.lerpStart = { x: 0, y: 0 };
-        this.lerper = (t) => 1 - (1 - t) * (1 - t);
+        this.entity = null;
         this.args = {};
     }
 
@@ -25,28 +58,16 @@ class Action {
     init(entity, selection, args = {}) {
         this.entity = entity;
         this.args = args;
-        this.lerpDuration = 0.5 / (this.entity.maxActionPoints * this.entity.agility)
-        this.lerpProgress = 0;
         return this;
     }
 
     selection(args) { return null; }
+    start() { }
+    update(dt) { return true; }
+    end() { }
 
-    updateLerp(dt, onComplete) {
-        this.lerpProgress += dt / this.lerpDuration;
-
-        let finished = false;
-        if (this.lerpProgress >= 1) {
-            this.lerpProgress = 1;
-            this.lerping = false;
-            finished = true;
-        }
-
-        const t = this.lerper(this.lerpProgress);
-        this.entity.center.x = lerp(this.lerpStart.x, this.lerpEnd.x, t);
-        this.entity.center.y = lerp(this.lerpStart.y, this.lerpEnd.y, t);
-
-        if (finished && onComplete) onComplete();
+    get defaultLerpDuration() {
+        return 1 / (this.entity.maxActionPoints * this.entity.agility);
     }
 }
 
@@ -67,87 +88,74 @@ export class Skip extends Action {
         this.entity.actionPoints = 0;
         this.entity.publish("action:end", { entity: this.entity });
     }
-
-    update() { return true; }
 }
 
 export class MoveAction extends Action {
     constructor() {
         super();
-        this.path;
-        this.apLimit;
-        this.cellSize;
-        this.pathIndex;
-
+        this.path = [];
+        this.apLimit = 0;
+        this.cellSize = 0;
+        this.pathIndex = 0;
         this.active = false;
+        this.lerp = null;
     }
-
-    selection() { return null };
 
     init(entity, path, apLimit, cellSize) {
         super.init(entity);
         this.path = path;
         this.apLimit = apLimit;
         this.cellSize = cellSize;
-
         return this;
     }
 
     start() {
         this.active = true;
         this.pathIndex = 1;
+        eventSystem.publish("entity:move:start");
     }
 
     end() {
         const lastTile = this.path[this.pathIndex - 1];
         this.entity.actionPoints -= lastTile.totalCost;
-
         this.active = false;
         this.pathIndex = 0;
         this.entity.moving = false;
-
-        this.entity.publish("action:end", { entity: this.entity });
-
-        eventSystem.publish("move:end", { entityName: this.entity.resourceName });
+        this.entity.publish("move:end"); // Tells entity to recalculate its position variables.
+        this.entity.publish("action:end", { entity: this.entity }); // Tells player it is ready to execute another action.
+        eventSystem.publish("entity:move:end", { entity: this.entity }); // Tells the movement has ended.
     }
 
     moveTo(targetCell) {
-        this.lerpEnd.x = targetCell.col * this.cellSize + this.cellSize / 2;
-        this.lerpEnd.y = targetCell.row * this.cellSize + this.cellSize / 2;
-        this.lerpStart = this.entity.center.clone();
-        this.lerpProgress = 0;
-        this.lerping = true;
+        const endPos = {
+            x: targetCell.col * this.cellSize + this.cellSize / 2,
+            y: targetCell.row * this.cellSize + this.cellSize / 2
+        };
 
-        eventSystem.publish("entity:move", {
-            eventAction: "move",
-            entityName: this.entity.resourceName
-        });
-
-        this.entity.publish("move:start", {});
+        this.lerp = new Lerp(this.entity.center, endPos, this.entity.center.clone(), this.defaultLerpDuration).start();
     }
 
     update(dt) {
-        if (this.active) {
-            if (this.lerping) {
-                this.updateLerp(dt, () => {
-                    this.entity.publish("move:end");
-                    this.pathIndex++
-                });
-            } else if (this.pathIndex < this.path.length) {
-                const nextTile = this.path[this.pathIndex];
-                if (this.entity.actionPoints - nextTile.totalCost >= this.apLimit) {
-                    this.moveTo(nextTile);
-                } else {
-                    this.end();
-                }
+        if (!this.active) return true;
+
+        if (this.lerp && this.lerp.active) {
+            this.lerp.update(dt);
+            if (!this.lerp.active) {
+                eventSystem.publish("entity:move");
+                this.pathIndex++;
+            }
+        } else if (this.pathIndex < this.path.length) {
+            const nextTile = this.path[this.pathIndex];
+            if (this.entity.actionPoints - nextTile.totalCost >= this.apLimit) {
+                this.moveTo(nextTile);
             } else {
                 this.end();
             }
-
-            return false;
         } else {
-            return true;
+            this.end();
         }
+
+        return false;
     }
 }
 
@@ -155,107 +163,80 @@ export class MeleeAttackAction extends Action {
     constructor() {
         super();
         this.active = false;
-        this.lerper = (t) => t * t;
+        this.lerp = null;
     }
 
     selection(args = {}) {
         const range = args.range || this.args?.range || 1;
         const alignment = args.alignment || this.args?.alignment || "none";
-
         return {
-            target: {
-                type: "entity",
-                amount: 1,
-                range: range,
-                alignment: alignment,
-                showTargetAura: true
-            }
+            target: { type: "entity", amount: 1, range, alignment, showTargetAura: true }
         };
     }
 
     getTitle() { return "Attack"; }
 
     getDescription() {
-        return `Cost:${this.args.cost}.
-                Range:${this.args.range}.
-                Deal ${this.args.damage} + up to ${this.args.swing}.`;
+        return `Cost:${this.args.cost}.\nRange:${this.args.range}.\nVisual dash attack.`;
     }
 
     init(entity, selection, args) {
         super.init(entity, selection, args);
-        this.startingPosition = this.entity.center.clone();
         this.target = selection.target[0];
         return this;
     }
 
     start() {
         if (this.entity.actionPoints < (this.args?.cost || 1)) {
-            console.warn("Action aborted: Insufficient AP.");
             this.end();
             return;
         }
 
+        this.entity.actionPoints -= this.args.cost || 1;
         this.active = true;
         this.stage = 0;
+        this.startingPosition = this.entity.center.clone();
+
+        const dist = {
+            x: (this.entity.center.x - this.target.center.x) * 0.5,
+            y: (this.entity.center.y - this.target.center.y) * 0.5
+        };
+        const endPos = {
+            x: this.target.center.x + dist.x,
+            y: this.target.center.y + dist.y
+        };
+
+        this.lerp = new Lerp(this.entity.center, endPos, this.entity.center.clone(), this.defaultLerpDuration);
+        this.lerp.lerper = (t) => t * t;
+        this.lerp.start();
+
+        eventSystem.publish("action:dash:start", { entity: this.entity });
     }
 
     end() {
         this.active = false;
-        this.entity.publish("action:end", { entity: this.entity });
-        eventSystem.publish("move:end", { entityName: this.entity.resourceName });
-    }
-
-    moveToTarget() {
-        const dist = { x: (this.entity.center.x - this.target.center.x) * 0.5, y: (this.entity.center.y - this.target.center.y) * 0.5 };
-        const endPos = { x: this.target.center.x + dist.x, y: this.target.center.y + dist.y };
-        this.lerpStart = this.entity.center.clone();
-        this.lerpEnd = endPos;
-        this.lerping = true;
-        this.lerpProgress = 0;
-        eventSystem.publish("entity:move", {
-            eventAction: "move",
-            entityName: this.name
-        });
-    }
-
-    moveBack() {
-        this.lerpStart = this.entity.center.clone();
-        this.lerpEnd = this.startingPosition;
-        this.lerping = true;
-        this.lerpProgress = 0;
-        eventSystem.publish("entity:move", {
-            eventAction: "move",
-            entityName: this.name
-        });
-    }
-
-    dealDamage() {
-        this.entity.actionPoints -= this.args.cost;
-        const damage = this.args.damage + Math.round(Math.random() * this.args.swing);
-        this.target.takeDamage(damage);
-        eventSystem.publish("entity:attack", { entityName: this.entity.resourceName });
     }
 
     update(dt) {
-        if (this.active) {
-            if (this.lerping) {
-                this.updateLerp(dt, () => {
-                    this.stage++
-                });
-            } else {
-                if (this.stage == 0) {
-                    this.moveToTarget();
-                } else if (this.stage == 1) {
-                    this.dealDamage();
-                    this.moveBack();
-                } else {
-                    this.end()
+        if (!this.active) return true;
+
+        if (this.lerp && this.lerp.active) {
+            this.lerp.update(dt);
+
+            if (!this.lerp.active) {
+                if (this.stage === 0) {
+                    eventSystem.publish("action:dash:intermediate", { entity: this.entity });
+
+                    this.stage = 1;
+                    this.lerp = new Lerp(this.entity.center, this.startingPosition, this.entity.center.clone(), this.defaultLerpDuration);
+                    this.lerp.lerper = (t) => t * t;
+                    this.lerp.start();
+                } else if (this.stage === 1) {
+                    this.end();
                 }
             }
-            return false;
-        } else {
-            return true;
         }
+        return false;
     }
 }
 
@@ -266,30 +247,20 @@ export class RangedAttackAction extends Action {
         const safeArgs = args || this.args || {};
         const range = safeArgs.range || 1;
         const alignment = safeArgs.alignment || "any";
-
         return {
-            target: {
-                type: "entity",
-                amount: 1,
-                range: range,
-                alignment: alignment,
-                showTargetAura: true
-            }
+            target: { type: "entity", amount: 1, range, alignment, showTargetAura: true }
         };
     }
 
     getTitle() { return "Take aim"; }
 
     getDescription() {
-        return `Cost:${this.args.cost}.
-                Range:${this.args.range}.
-                Deal ${this.args.damage} + up to ${this.args.swing} from afar.`;
+        return `Cost:${this.args.cost}.\nRange:${this.args.range}.\nVisual ranged attack.`;
     }
 
     init(entity, selection, args) {
         super.init(entity, selection, args);
         this.target = selection.target[0];
-
         this.kickback = this.args.kickback || 0.1;
         this.projectileSpeed = this.args.speed || 400;
         return this;
@@ -297,15 +268,14 @@ export class RangedAttackAction extends Action {
 
     start() {
         if (this.entity.actionPoints < (this.args?.cost || 1)) {
-            console.warn("Action aborted: Insufficient AP.");
             this.end();
             return;
         }
 
+        this.entity.actionPoints -= this.args.cost || 1;
         this.startingPosition = this.entity.center.clone();
-        this.lerperProjectile = (t) => t ** 2;
-
         this.distance = { x: this.target.center.x - this.entity.center.x, y: this.target.center.y - this.entity.center.y };
+
         const distMag = Math.sqrt(this.distance.x ** 2 + this.distance.y ** 2);
         const dir = {
             x: distMag > 0 ? this.distance.x / distMag : 0,
@@ -320,90 +290,62 @@ export class RangedAttackAction extends Action {
         this.projectile = new Entity(new Coordinate(spawn.x, spawn.y), "projectile");
         this.projectile.width = 20;
         this.projectile.height = 60;
-        this.projectile.rotation = Math.atan2(this.target.center.y - this.entity.center.y, this.target.center.x - this.entity.center.x) + Math.PI / 2;
-        this.projectileLerpDuration = distMag / this.projectileSpeed;
-        this.projectileLerping = false;
-        this.projectileLerpingProgress = 0;
-        this.projectileLerpStart = { x: spawn.x, y: spawn.y };
-        this.projectileLerpEnd = { x: this.target.center.x, y: this.target.center.y };
+        this.projectile.rotation = Math.atan2(this.distance.y, this.distance.x) + Math.PI / 2;
 
-        this.active = true;
-        this.stage = 0;
-        this.moveBack();
-    }
-
-    end() {
-        this.entity.publish("action:end", { entity: this.entity });
-        eventSystem.publish("move:end", { entityName: this.name });
-        this.active = false;
-    }
-
-    dealDamage() {
-        this.entity.actionPoints -= this.args.cost;
-        const damage = this.args.damage + Math.round(Math.random() * this.args.swing);
-        this.target.takeDamage(damage);
-        eventSystem.publish("entity:attack", { entityName: this.name });
-    }
-
-    updateLerpProjectile(dt) {
-        this.projectileLerpingProgress += dt / this.projectileLerpDuration;
-
-        if (this.projectileLerpingProgress >= 1) {
-            this.projectileLerpingProgress = 1;
-            this.projectileLerping = false;
-        }
-
-        const t = this.lerperProjectile(this.projectileLerpingProgress);
-        this.projectile.center.x = lerp(this.projectileLerpStart.x, this.projectileLerpEnd.x, t);
-        this.projectile.center.y = lerp(this.projectileLerpStart.y, this.projectileLerpEnd.y, t);
-    }
-
-    moveBack() {
-        this.lerpStart = this.entity.center.clone();
-        this.lerpEnd = {
+        const kickbackEnd = {
             x: this.entity.center.x - this.distance.x * this.kickback,
             y: this.entity.center.y - this.distance.y * this.kickback
         };
-        this.lerping = true;
-        this.lerpProgress = 0;
+
+        this.entityLerp = new Lerp(this.entity.center, kickbackEnd, this.entity.center.clone(), this.defaultLerpDuration).start();
+        this.projectileLerp = null;
+
+        this.active = true;
         this.stage = 0;
     }
 
-    moveToStart() {
-        this.lerpStart = this.entity.center.clone();
-        this.lerpEnd = this.startingPosition;
-        this.lerping = true;
-        this.lerpProgress = 0;
-        this.stage = 1;
+    end() {
+        this.active = false;
+    }
+
+    onProjectileHit() {
+        eventSystem.publish("action:ranged:intermediate", { entity: this.entity });
     }
 
     update(dt) {
         if (!this.active) return true;
 
-        if (this.lerping) {
-            this.updateLerp(dt, () => {
-                if (this.stage === 0) {
-                    app.entities.push(this.projectile);
-                    this.projectileLerping = true;
-                    this.moveToStart();
-                }
-            });
-        }
+        if (this.entityLerp && this.entityLerp.active) {
+            this.entityLerp.update(dt);
 
-        if (this.projectileLerping) {
-            this.updateLerpProjectile(dt);
+            if (!this.entityLerp.active && this.stage === 0) {
+                eventSystem.publish("action:ranged:start", { entity: this.entity });
+                app.entities.push(this.projectile);
 
-            if (!this.projectileLerping) {
-                this.dealDamage();
+                const distMag = Math.sqrt(this.distance.x ** 2 + this.distance.y ** 2);
+                const projEnd = { x: this.target.center.x, y: this.target.center.y };
 
-                const index = app.entities.indexOf(this.projectile);
-                if (index > -1) {
-                    app.entities.splice(index, 1);
-                }
+                this.projectileLerp = new Lerp(this.projectile.center, projEnd, this.projectile.center.clone(), distMag / this.projectileSpeed);
+                this.projectileLerp.lerper = (t) => t ** 2;
+                this.projectileLerp.start();
+
+                this.entityLerp = new Lerp(this.entity.center, this.startingPosition, this.entity.center.clone(), this.defaultLerpDuration).start();
+                this.stage = 1;
             }
         }
 
-        if (!this.projectileLerping && !this.lerping && this.stage === 1) {
+        if (this.projectileLerp && this.projectileLerp.active) {
+            this.projectileLerp.update(dt);
+
+            if (!this.projectileLerp.active) {
+                this.onProjectileHit();
+
+                const index = app.entities.indexOf(this.projectile);
+                if (index > -1) app.entities.splice(index, 1);
+            }
+        }
+
+        if ((!this.entityLerp || !this.entityLerp.active) && this.stage === 1 && (!this.projectileLerp || !this.projectileLerp.active)) {
             this.end();
             return true;
         }
@@ -419,50 +361,20 @@ export class AreaAttackAction extends RangedAttackAction {
         const radius = args.radius || this.args?.radius || 1;
         const range = args.range || this.args?.range || 1;
         return {
-            target: {
-                type: "cell",
-                amount: 1,
-                range: range,
-                showTargetAura: true,
-                showBlastAura: true,
-                blastRadius: radius
-            }
+            target: { type: "cell", amount: 1, range, showTargetAura: true, showBlastAura: true, blastRadius: radius }
         };
     }
 
     getTitle() { return "Blast"; }
 
     getDescription() {
-        return `Cost:${this.args.cost}.
-                Range:${this.args.range}.
-                Deal ${this.args.damage} + up to ${this.args.swing} to an area`;
-    }
-
-    dealDamage() {
-        this.entity.actionPoints -= this.args.cost;
-        const damage = this.args.damage + Math.round(Math.random() * this.args.swing);
-
-        app.entities.forEach((e) => {
-            if (!e.cell || e.health === undefined) return;
-            const distance = manhattan(e.cell, this.impactCell);
-            if (distance <= this.radius) {
-                e.takeDamage(damage);
-                eventSystem.publish("entity:attack", { entityName: this.entity.resourceName });
-            }
-        });
+        return `Cost:${this.args.cost}.\nRange:${this.args.range}.\nVisual AoE attack to an area.`;
     }
 
     init(entity, selection, args) {
         this.entity = entity;
-
         const target = selection?.target?.[0];
-        let targetCell;
-
-        if (target && target.col !== undefined && target.row !== undefined) {
-            targetCell = target;
-        } else if (target && target.cell && target.cell.col !== undefined) {
-            targetCell = target.cell;
-        }
+        let targetCell = (target && target.col !== undefined && target.row !== undefined) ? target : (target?.cell);
 
         if (!targetCell) {
             console.warn("AreaAttackAction failed: Target is missing or invalid.", selection);
@@ -475,13 +387,20 @@ export class AreaAttackAction extends RangedAttackAction {
         const targetY = (targetCell.row * size) + (size / 2);
 
         const dummyTarget = new Entity(new Coordinate(targetX, targetY), "dummyTarget");
-
         super.init(entity, { target: [dummyTarget] }, args);
 
         this.radius = args.radius || 1;
         this.impactCell = targetCell;
 
         return this;
+    }
+
+    onProjectileHit() {
+        eventSystem.publish("action:area:intermediate", {
+            entity: this.entity,
+            impactCell: this.impactCell,
+            radius: this.radius
+        });
     }
 }
 

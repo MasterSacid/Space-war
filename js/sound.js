@@ -14,7 +14,7 @@ export class Sound {
                 "./sounds/movement/metal5.ogg",
             ],
             dialogue: {
-                SpearWoman: {
+                "spear-woman": {
                     greeting: [
                         "./sounds/dialogue/woman/confirmation_9_karen.wav",
                         "./sounds/dialogue/woman/greeting_5_karen.wav",
@@ -31,7 +31,7 @@ export class Sound {
                     ],
                     death: ["./sounds/dialogue/woman/death_4_karen.wav"],
                 },
-                Magician: {
+                "magician": {
                     greeting: [
                         "./sounds/dialogue/magician/confirmation_1_ian.wav",
                         "./sounds/dialogue/magician/greeting_4_ian.wav",
@@ -48,7 +48,7 @@ export class Sound {
                     ],
                     death: ["./sounds/dialogue/magician/death_2_ian.wav"],
                 },
-                Captain: {
+                "cyborg": {
                     greeting: [
                         "./sounds/dialogue/captain/completion_4_sean.wav",
                         "./sounds/dialogue/captain/greeting_4_sean.wav",
@@ -110,10 +110,10 @@ export class Sound {
 
     // --- Handlers ---
     handleMovement = () => this.playSound("move");
-    handleTurnStart = (d) => this.playSound(["dialogue", d.entityName, "greeting"], 0.4);
-    handleActionBlocked = (d) => this.playSound(["dialogue", d.entityName, "refusal"], 0.4);
-    handleDamaged = (d) => this.playSound(["dialogue", d.entityName, "hurt"], 0.4);
-    handleDied = (d) => this.playSound(["dialogue", d.entityName, "death"], 0.4);
+    handleTurnStart = ({ entity }) => this.playSound(["dialogue", entity.type, "greeting"], 0.4);
+    handleActionBlocked = ({ entity }) => this.playSound(["dialogue", entity.type, "refusal"], 0.4);
+    handleDamaged = ({ entity }) => this.playSound(["dialogue", entity.type, "hurt"], 0.4);
+    handleDied = ({ entity }) => this.playSound(["dialogue", entity.type, "death"], 0.4);
 
     playSound(path, volume = 0.1) {
         const keys = Array.isArray(path) ? path : [path];

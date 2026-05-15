@@ -9,39 +9,18 @@ import { Sound } from "./sound.js";
 import { AnimationPlayer, createAnimationCatalogue } from "./animation.js";
 import { eventSystem } from "./eventSystem.js";
 
-const captain = new PlayableEntity(new Coordinate(-32 - 4 * 64, 32), "Captain");
-captain.party = "goodguysparty";
-captain.resourceName = "Captain";
+const captain = new PlayableEntity(new Coordinate(-32 - 4 * 64, 32), "Captain", "cyborg", "player");
 captain.playerActions.push({ name: "meleeAttack", args: { cost: 1, range: 1, damage: 20, swing: 10, alignment: "enemy" } });
 
-const wizard = new PlayableEntity(new Coordinate(-32 - 6 * 64, 32), "Weizardo");
-wizard.party = "goodguysparty";
+const wizard = new PlayableEntity(new Coordinate(-32 - 6 * 64, 32), "Weizardo", "magician", "player");
 wizard.playerActions.push({ name: "rangedAttack", args: { cost: 1, range: 6, damage: 10, swing: 10, kickback: 0.1, speed: 400, alignment: "enemy" } });
-wizard.resourceName = "Magician"
 
-const woman = new PlayableEntity(new Coordinate(-32 - 5 * 64, 32), "Random Woman");
-woman.party = "goodguysparty";
+const woman = new PlayableEntity(new Coordinate(-32 - 5 * 64, 32), "Random Woman", "spear-woman", "player");
 woman.playerActions.push({ name: "areaAttack", args: { cost: 2, range: 7, radius: 2, damage: 10, swing: 20, kickback: -0.1, speed: 400 } });
-woman.resourceName = "SpearWoman";
 
-const meleeEntity = new Entity(new Coordinate(-96, 32), "Melee");
-meleeEntity.party = "enemies"
-
-const areaEntity = new AreaDamagingEntity(new Coordinate(-32, 32), "Area");
-areaEntity.party = "enemies"
-
-const rangedEntity = new AreaDamagingEntity(new Coordinate(32, 32), "Ranged");
-rangedEntity.party = "enemies"
-
-// Hangi entity'nin hangi animasyon setini kullanacağını burada eşliyoruz
-const entityAnimationMap = [
-    { entity: captain, setName: captain.resourceName },
-    { entity: wizard, setName: wizard.resourceName },
-    { entity: woman, setName: woman.resourceName },
-    { entity: meleeEntity, setName: "Skeleton" },
-    { entity: areaEntity, setName: "BloodWizard" },
-    { entity: rangedEntity, setName: "Slime" },
-];
+const meleeEntity = new Entity(new Coordinate(-96, 32), "Melee", "skeleton", "enemies");
+const areaEntity = new AreaDamagingEntity(new Coordinate(-32, 32), "Area", "blood-witch", "enemies");
+const rangedEntity = new AreaDamagingEntity(new Coordinate(32, 32), "Ranged", "slime", "enemies");
 
 class App {
     async start() {
@@ -79,10 +58,10 @@ class App {
         await this.animationCatalogue.ready();
 
         // Her entity için bir AnimationPlayer oluştur ve entity'ye bağla
-        this.animationPlayers = entityAnimationMap.map(({ entity, setName }) => {
-            const set = this.animationCatalogue.sets[setName];
+        this.animationPlayers = this.entities.map((entity) => {
+            const set = this.animationCatalogue.sets[entity.type];
             if (!set) {
-                console.warn(`Animation set "${setName}" not found for entity "${entity.resourceName}"`);
+                console.warn(`Animation set not found for type "${entity.type}"`);
                 return null;
             }
             const player = new AnimationPlayer(entity, set, {
