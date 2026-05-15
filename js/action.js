@@ -3,6 +3,7 @@ import { Coordinate, lerp, manhattan } from './utils.js';
 import { app } from './index.js';
 import { eventSystem } from './eventSystem.js';
 
+
 class Action {
     constructor() {
         this.entity;
@@ -107,7 +108,7 @@ export class MoveAction extends Action {
 
         this.entity.publish("action:end", { entity: this.entity });
 
-        eventSystem.publish("move:end", { entityName: this.entity.name });
+        eventSystem.publish("move:end", { entityName: this.entity.resourceName });
     }
 
     moveTo(targetCell) {
@@ -119,7 +120,7 @@ export class MoveAction extends Action {
 
         eventSystem.publish("entity:move", {
             eventAction: "move",
-            entityName: this.entity.name
+            entityName: this.entity.resourceName
         });
 
         this.entity.publish("move:start", {});
@@ -159,11 +160,14 @@ export class MeleeAttackAction extends Action {
 
     selection(args = {}) {
         const range = args.range || this.args?.range || 1;
+        const alignment = args.alignment || this.args?.alignment || "none";
+
         return {
             target: {
                 type: "entity",
                 amount: 1,
                 range: range,
+                alignment: alignment,
                 showTargetAura: true
             }
         };
@@ -198,7 +202,7 @@ export class MeleeAttackAction extends Action {
     end() {
         this.active = false;
         this.entity.publish("action:end", { entity: this.entity });
-        eventSystem.publish("move:end", { entityName: this.entity.name });
+        eventSystem.publish("move:end", { entityName: this.entity.resourceName });
     }
 
     moveToTarget() {
@@ -229,7 +233,7 @@ export class MeleeAttackAction extends Action {
         this.entity.actionPoints -= this.args.cost;
         const damage = this.args.damage + Math.round(Math.random() * this.args.swing);
         this.target.takeDamage(damage);
-        eventSystem.publish("entity:attack", { entityName: this.entity.name });
+        eventSystem.publish("entity:attack", { entityName: this.entity.resourceName });
     }
 
     update(dt) {
@@ -261,11 +265,14 @@ export class RangedAttackAction extends Action {
     selection(args) {
         const safeArgs = args || this.args || {};
         const range = safeArgs.range || 1;
+        const alignment = safeArgs.alignment || "any";
+
         return {
             target: {
                 type: "entity",
                 amount: 1,
                 range: range,
+                alignment: alignment,
                 showTargetAura: true
             }
         };
@@ -440,7 +447,7 @@ export class AreaAttackAction extends RangedAttackAction {
             const distance = manhattan(e.cell, this.impactCell);
             if (distance <= this.radius) {
                 e.takeDamage(damage);
-                eventSystem.publish("entity:attack", { entityName: this.entity.name });
+                eventSystem.publish("entity:attack", { entityName: this.entity.resourceName });
             }
         });
     }

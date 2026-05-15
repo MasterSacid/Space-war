@@ -322,3 +322,53 @@ export class CardPane extends Window {
         this.container.style.display = "none";
     }
 }
+
+export class TempTextPane extends Window {
+    constructor(canvas) {
+        super(canvas, canvas.width, canvas.height, 0, 0);
+        this.container = document.getElementById("tempTextContainer");
+        this.textElement = document.getElementById("tempText");
+
+        this.fadeTimeout = null;
+        this.hideTimeout = null;
+    }
+
+    on() {
+        this.container.style.display = "flex";
+        this.visible = true;
+    }
+
+    off() {
+        this.container.style.display = "none";
+        this.visible = false;
+    }
+
+    showMessage(text, size = "30px", duration = 2000) {
+        if (this.fadeTimeout) clearTimeout(this.fadeTimeout);
+        if (this.hideTimeout) clearTimeout(this.hideTimeout);
+
+        this.textElement.innerText = text;
+        this.textElement.style.fontSize = size;
+
+        this.textElement.style.transition = "none";
+        this.textElement.style.opacity = "1";
+
+        this.on();
+
+        void this.textElement.offsetWidth;
+
+        this.fadeTimeout = setTimeout(() => {
+            this.textElement.style.transition = "opacity 1s ease-out";
+            this.textElement.style.opacity = "0";
+
+            this.hideTimeout = setTimeout(() => {
+                this.off();
+            }, 1000);
+
+        }, duration);
+    }
+
+    update() { }
+
+    show() { }
+}

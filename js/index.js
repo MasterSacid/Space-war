@@ -1,4 +1,4 @@
-import { MainMenu, SpaceScene, StatusPane, TerminalPane, CardPane, dialogPane } from "./ui.js"
+import { MainMenu, SpaceScene, StatusPane, TerminalPane, CardPane, dialogPane, TempTextPane } from "./ui.js"
 import { Viewport } from "./viewport.js";
 import { Grid } from "./grid.js";
 import { Combat } from "./combat.js";
@@ -7,18 +7,22 @@ import { Entity, Player, RangedEntity, AreaDamagingEntity, PlayableEntity } from
 import { Graphics } from "./graphics.js";
 import { Sound } from "./sound.js";
 import { AnimationPlayer, createAnimationCatalogue } from "./animation.js";
+import { eventSystem } from "./eventSystem.js";
 
 const captain = new PlayableEntity(new Coordinate(-32 - 4 * 64, 32), "Captain");
 captain.party = "goodguysparty";
-captain.playerActions.push({ name: "meleeAttack", args: { cost: 1, range: 1, damage: 20, swing: 10 } });
+captain.resourceName = "Captain";
+captain.playerActions.push({ name: "meleeAttack", args: { cost: 1, range: 1, damage: 20, swing: 10, alignment: "enemy" } });
 
 const wizard = new PlayableEntity(new Coordinate(-32 - 6 * 64, 32), "Weizardo");
 wizard.party = "goodguysparty";
-wizard.playerActions.push({ name: "rangedAttack", args: { cost: 2, range: 6, damage: 10, swing: 10, kickback: 0.1, speed: 400 } });
+wizard.playerActions.push({ name: "rangedAttack", args: { cost: 1, range: 6, damage: 10, swing: 10, kickback: 0.1, speed: 400, alignment: "enemy" } });
+wizard.resourceName = "Magician"
 
 const woman = new PlayableEntity(new Coordinate(-32 - 5 * 64, 32), "Random Woman");
 woman.party = "goodguysparty";
 woman.playerActions.push({ name: "areaAttack", args: { cost: 2, range: 7, radius: 2, damage: 10, swing: 20, kickback: -0.1, speed: 400 } });
+woman.resourceName = "SpearWoman";
 
 const meleeEntity = new Entity(new Coordinate(-96, 32), "Melee");
 meleeEntity.party = "enemies"
@@ -31,9 +35,9 @@ rangedEntity.party = "enemies"
 
 // Hangi entity'nin hangi animasyon setini kullanacağını burada eşliyoruz
 const entityAnimationMap = [
-    { entity: captain, setName: "Cyborg" },
-    { entity: wizard, setName: "Magician" },
-    { entity: woman, setName: "SpearWoman" },
+    { entity: captain, setName: captain.resourceName },
+    { entity: wizard, setName: wizard.resourceName },
+    { entity: woman, setName: woman.resourceName },
     { entity: meleeEntity, setName: "Skeleton" },
     { entity: areaEntity, setName: "BloodWizard" },
     { entity: rangedEntity, setName: "Slime" },
@@ -51,17 +55,20 @@ class App {
         this.terminalPane = new TerminalPane(canvas);
         this.cardPane = new CardPane(canvas);
         this.dialogPane = new dialogPane(canvas);
+        this.tempTextPane = new TempTextPane(canvas);
 
         this.viewport = new Viewport(this.canvas, captain.center);
         this.player = new Player(this.canvas, captain, this.viewport);
         this.map = new Grid(64, this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity]);
 
         this.sound = new Sound();
-        this.sound.playMusic("main",0.1);
+        this.sound.playMusic("main", 0.1);
         this.graphics = new Graphics(this.canvas, this.player, this.map);
 
         this.combat = new Combat(this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity], this.map);
         this.entities = [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity];
+
+        eventSystem.subscribe("combat:end", ({ winnerParty }) => this.handleCombatEnd(winnerParty));
 
         // Animation timer
         this.lastTime = 0;
@@ -75,7 +82,7 @@ class App {
         this.animationPlayers = entityAnimationMap.map(({ entity, setName }) => {
             const set = this.animationCatalogue.sets[setName];
             if (!set) {
-                console.warn(`Animation set "${setName}" not found for entity "${entity.name}"`);
+                console.warn(`Animation set "${setName}" not found for entity "${entity.resourceName}"`);
                 return null;
             }
             const player = new AnimationPlayer(entity, set, {
@@ -172,9 +179,21 @@ class App {
         });
     }
 
+    async handleCombatEnd(winner) {
+        await sleep(2000);
+        if (winner === this.player.entity.party) {
+            await this.tempTextPane.showMessage("VICTORY", 40, 2000);
+        } else {
+            await this.tempTextPane.showMessage("DEFEAT", 40, 2000);
+        }
+        await sleep(4000);
+        this.turnOnAllOverlays();
+        this.cardPane.off();
+    }
+
     update(currentTime) {
-        // we use delta time to calculate updates regardless of what fps we get
         const deltaTime = (currentTime - this.lastTime) / 1000;
+        // we use delta time to calculate updates regardless of what fps we get
         this.lastTime = currentTime;
 
         // Make logic updates here

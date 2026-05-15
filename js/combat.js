@@ -97,6 +97,10 @@ export class Combat {
             return;
         }
 
+
+        if (entity.party === this.player.entity.party && Math.random() < 1 / 3) {
+            eventSystem.publish("entity:turn-start", { entityName: entity.resourceName })
+        }
         this.activeEntity = entity;
 
         this.actionLoop();
@@ -128,7 +132,7 @@ export class Combat {
 
     onDeath(entity) {
         const partySet = this.parties.get(entity.party);
-        eventSystem.publish("death", { entityName: entity.name });
+        eventSystem.publish("entity:death", { entityName: entity.resourceName });
 
         if (partySet) {
             partySet.delete(entity);
@@ -143,7 +147,8 @@ export class Combat {
             this.combatActive = false;
             console.log("Combat has ended.");
             eventSystem.publish("combat:end", {
-                roundCount: this.roundCounter
+                roundCount: this.roundCounter,
+                winnerParty: this.parties.keys().next().value
             });
         }
     }

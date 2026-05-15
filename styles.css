@@ -44,7 +44,31 @@ html,body{
     left:50%;
     transform: translate(-50%,-50%);
     height: 50%;
-    width: 100%
+    width: 100%;
+    text-align: center;
+}
+
+#tempTextContainer {
+    position: absolute;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 20;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    height: 50%;
+    width: 100%;
+    text-align: center;
+    
+    pointer-events: none; 
+}
+
+#tempText {
+    color: white;
+    font: 30px 'PressStart2P', sans-serif;
+    opacity: 1;
+    text-shadow: 3px 3px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 1px 1px 0px #000;
 }
 
 #playButton{

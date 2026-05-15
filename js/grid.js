@@ -292,7 +292,7 @@ export class Grid {
 
     // Erisilebilir kayitli hucreleri cizer.
     drawEntityAura(ctx, entity) {
-        ctx.fillStyle = "rgba(50,90,255,0.3)";
+        ctx.fillStyle = "rgba(50,90,255,0.5)";
 
         for (const [cellStr, info] of entity.dijkstraInfo.entries()) {
 

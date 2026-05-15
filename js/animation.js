@@ -1,13 +1,18 @@
 import { eventSystem } from "./eventSystem.js";
 
 export class AnimationSet {
-    constructor({ flipped = false, scale = 1 } = {}) {
+    constructor({ flipped = false, scaleX = 1, scaleY, offsetX = 0, offsetY = 0 } = {}) {
         this.animations = {};
         this.pendingLoads = [];
         this.flipped = flipped;
-        this.scale = scale;
+        this.scaleX = scaleX;
+        this.scaleY = scaleY;
+        this.offsetX = offsetX;
+        this.offsetY = offsetY
+        this.isLocked = false;
     }
-    addAnimation(name, { imageUrl, frameCount, frameDuration = 0.125 }) {
+
+    addAnimation(name, { imageUrl, frameCount, frameDuration = 0.125, offsetX = 0, offsetY = 0 }) {
         const image = new Image();
         const animation = {
             image,
@@ -15,6 +20,8 @@ export class AnimationSet {
             frameHeight: null,
             frameCount,
             frameDuration,
+            offsetX,
+            offsetY,
             loaded: false
         };
         this.animations[name] = animation;
@@ -64,7 +71,9 @@ export class AnimationSet {
             sx: (frameIndex % anim.frameCount) * anim.frameWidth, //offset koyarak framelerde ilerle
             sy: 0, //Tek satır var o yüzden doğrudan 0 diye girdim
             sw: anim.frameWidth,
-            sh: anim.frameHeight
+            sh: anim.frameHeight,
+            offsetX: this.offsetX + anim.offsetX,
+            offsetY: this.offsetY + anim.offsetY
         };
     }
 }
@@ -88,11 +97,8 @@ export class AnimationPlayer {
         eventSystem.subscribe("entity:attack", this.handleMelee);
         eventSystem.subscribe("entity:idle", this.handleIdle);
         eventSystem.subscribe("move:end", this.handleMoveEnd);
-        eventSystem.subscribe("death", this.handleDeath);
-        eventSystem.subscribe("hurt", this.handleHurt);
-
-
-
+        eventSystem.subscribe("entity:death", this.handleDeath);
+        eventSystem.subscribe("entity:damaged", this.handleHurt);
 
         this.subscriptions.push(
             ["entity:move", this.handleMove],
@@ -102,44 +108,61 @@ export class AnimationPlayer {
     }
 
     handleMove = (data) => {
-        if (!data || data.entityName !== this.entity.name) return;
+        if (!data || data.entityName !== this.entity.resourceName) return;
+        if (this.isLocked) return;
         this.play("run", { loop: true });
     };
-    handleMoveEnd = (data) => {
-        if (!data || data.entityName !== this.entity.name) return;
+
+    handleIdle = (data) => {
+        if (!data || data.entityName !== this.entity.resourceName) return;
+        if (this.isLocked) return;
         this.play(this.defaultAnimation, { loop: true });
     };
 
+    handleMoveEnd = (data) => {
+        if (this.isLocked) return;
+        if (!data || data.entityName !== this.entity.resourceName) return;
+        this.play(this.defaultAnimation, { loop: true });
+    };
     handleDeath = (data) => {
-        if (!data || data.entityName !== this.entity.name) return;
+        if (!data || data.entityName !== this.entity.resourceName) return;
+        this.isLocked = true;
+
         this.play("death", {
             loop: false,
         });
     };
 
-    handleHurt = (data) => {
-        if (!data || data.entityName !== this.entity.name) return;
-        this.play("hurt", {
-            loop: false,
-            onEnd: () => this.play(this.defaultAnimation, { loop: true }),
-        });
-    };
-
-
     handleMelee = (data) => {
-        if (!data || data.entityName !== this.entity.name) return;
+        if (!data || data.entityName !== this.entity.resourceName) return;
+
+        this.isLocked = true;
+
         this.play("attack", {
             loop: false,
-            onEnd: () => this.play(this.defaultAnimation, { loop: true }),
+            onEnd: () => {
+                this.isLocked = false;
+                this.play(this.defaultAnimation, { loop: true });
+            },
         });
     };
 
-    handleIdle = (data) => {
-        if (!data || data.entityName !== this.entity.name) return;
-        this.play(this.defaultAnimation, { loop: true });
+    handleHurt = (data) => {
+        if (!data || data.entityName !== this.entity.resourceName) return;
+
+        this.isLocked = true;
+
+        this.play("hurt", {
+            loop: false,
+            onEnd: () => {
+                this.isLocked = false;
+                this.play(this.defaultAnimation, { loop: true });
+            },
+        });
     };
 
     play(name, { loop = true, onEnd = null } = {}) {
+        console.log(`Playing: ${name} for ${this.entity.resourceName}`);
         if (!this.animationSet.has(name)) return;
         if (this.currentName === name && this.loop && loop) return;
 
@@ -175,12 +198,14 @@ export class AnimationPlayer {
         const frame = this.animationSet.getFrame(this.currentName, this.currentFrame);
         if (!frame) return;
 
-        const scale = this.animationSet.scale;
-        const dw = this.entity.width * scale;
-        const dh = this.entity.height * scale;
-        const dx = this.entity.center.x - dw / 2;
+        const scaleX = this.animationSet.scaleX;
+        const scaleY = this.animationSet.scaleY;
+        const dw = this.entity.width * scaleX;
+        const dh = this.entity.height * scaleY;
+
+        const dx = (this.entity.center.x - dw / 2) + (frame.offsetX);
         const cellBottom = this.entity.center.y + this.cellSize / 2;
-        const dy = cellBottom - dh;
+        const dy = (cellBottom - dh) + (frame.offsetY);
 
         const facingLeft = (this.entity.facing ?? 1) < 0;
         const shouldFlip = this.animationSet.flipped !== facingLeft;
@@ -205,42 +230,42 @@ export class AnimationPlayer {
 
 export function createAnimationCatalogue() {
 
-    const bloodWizard = new AnimationSet({ flipped: false, scale: 4.5 });
+    const bloodWizard = new AnimationSet({ flipped: true, scaleX: 4.5, scaleY: 4.5, offsetY: 64 });
     bloodWizard.addAnimation("idle", { imageUrl: "./animations/charachters/blood_wizard/wizard_idle.png", frameCount: 10 });
     bloodWizard.addAnimation("run", { imageUrl: "./animations/charachters/blood_wizard/wizard_run.png", frameCount: 8 });
     bloodWizard.addAnimation("attack", { imageUrl: "./animations/charachters/blood_wizard/wizard_attack.png", frameCount: 13 });
     bloodWizard.addAnimation("death", { imageUrl: "./animations/charachters/blood_wizard/wizard_death.png", frameCount: 18 });
     bloodWizard.addAnimation("hurt", { imageUrl: "./animations/charachters/blood_wizard/wizard_hurt.png", frameCount: 3 });
 
-    const skeleton = new AnimationSet({ flipped: false, scale: 2.3 });
+    const skeleton = new AnimationSet({ flipped: true, scaleX: 3, scaleY: 2.25 });
     skeleton.addAnimation("idle", { imageUrl: "./animations/charachters/skeleton/skeleton_idle.png", frameCount: 8 });
     skeleton.addAnimation("run", { imageUrl: "./animations/charachters/skeleton/skeleton_walk.png", frameCount: 10 });
     skeleton.addAnimation("attack", { imageUrl: "./animations/charachters/skeleton/skeleton_attack.png", frameCount: 10 });
     skeleton.addAnimation("death", { imageUrl: "./animations/charachters/skeleton/skeleton_die.png", frameCount: 13 });
     skeleton.addAnimation("hurt", { imageUrl: "./animations/charachters/skeleton/skeleton_hurt.png", frameCount: 5 });
 
-    const slime = new AnimationSet({ flipped: false, scale: 5 });
+    const slime = new AnimationSet({ flipped: true, scaleX: 5, scaleY: 5, offsetY: 96 });
     slime.addAnimation("idle", { imageUrl: "./animations/charachters/slime/slime_idle.png", frameCount: 6 });
     slime.addAnimation("run", { imageUrl: "./animations/charachters/slime/slime_run.png", frameCount: 8 });
     slime.addAnimation("attack", { imageUrl: "./animations/charachters/slime/slime_attack.png", frameCount: 8 });
     slime.addAnimation("death", { imageUrl: "./animations/charachters/slime/slime_death.png", frameCount: 10 });
     slime.addAnimation("hurt", { imageUrl: "./animations/charachters/slime/slime_hurt.png", frameCount: 4 });
 
-    const cyborg = new AnimationSet({ flipped: false, scale: 1.8 });
+    const cyborg = new AnimationSet({ flipped: false, scaleX: 1.8, scaleY: 1.8, offsetX: 16 });
     cyborg.addAnimation("idle", { imageUrl: "./animations/charachters/cyborg/cyborg_idle.png", frameCount: 4 });
     cyborg.addAnimation("run", { imageUrl: "./animations/charachters/cyborg/cyborg_run.png", frameCount: 6 });
     cyborg.addAnimation("attack", { imageUrl: "./animations/charachters/cyborg/cyborg_attack.png", frameCount: 6 });
     cyborg.addAnimation("death", { imageUrl: "./animations/charachters/cyborg/cyborg_death.png", frameCount: 6 });
     cyborg.addAnimation("hurt", { imageUrl: "./animations/charachters/cyborg/cyborg_hurt.png", frameCount: 2 });
 
-    const spearwoman = new AnimationSet({ flipped: false, scale: 3.8 });
+    const spearwoman = new AnimationSet({ flipped: false, scaleX: 3.8, scaleY: 3.8, offsetY: 24, offsetX: 16 });
     spearwoman.addAnimation("attack", { imageUrl: "./animations/charachters/spearwoman/woman_attack.png", frameCount: 22, frameDuration: 0.08 });
     spearwoman.addAnimation("idle", { imageUrl: "./animations/charachters/spearwoman/woman_idle.png", frameCount: 8 });
     spearwoman.addAnimation("run", { imageUrl: "./animations/charachters/spearwoman/woman_run.png", frameCount: 8 });
     spearwoman.addAnimation("death", { imageUrl: "./animations/charachters/spearwoman/woman_death.png", frameCount: 9 });
     spearwoman.addAnimation("hurt", { imageUrl: "./animations/charachters/spearwoman/woman_hurt.png", frameCount: 4 });
 
-    const magician = new AnimationSet({ flipped: false, scale: 3 });
+    const magician = new AnimationSet({ flipped: false, scaleX: 3, scaleY: 3 });
     magician.addAnimation("idle", { imageUrl: "./animations/charachters/magician/magician_idle.png", frameCount: 8 });
     magician.addAnimation("attack", { imageUrl: "./animations/charachters/magician/magician_attack.png", frameCount: 7, frameDuration: 0.08 });
     magician.addAnimation("death", { imageUrl: "./animations/charachters/magician/magician_death.png", frameCount: 4 });
@@ -254,7 +279,7 @@ export function createAnimationCatalogue() {
             "BloodWizard": bloodWizard,
             "Skeleton": skeleton,
             "Slime": slime,
-            "Cyborg": cyborg,
+            "Captain": cyborg,
             "SpearWoman": spearwoman,
             "Magician": magician
         },

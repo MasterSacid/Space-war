@@ -80,10 +80,10 @@ export class Sound {
         this.subscribe("entity:move", this.handleMovement);
 
         // Dialog Events
-        this.subscribe("entity:turn-start",     this.handleTurnStart);
+        this.subscribe("entity:turn-start", this.handleTurnStart);
         this.subscribe("entity:action-blocked", this.handleActionBlocked);
-        this.subscribe("entity:damaged",        this.handleDamaged);
-        this.subscribe("entity:died",           this.handleDied);
+        this.subscribe("entity:damaged", this.handleDamaged);
+        this.subscribe("entity:death", this.handleDied);
 
         // Publish formats:
         // eventSystem.publish("entity:move",           { entityName: "..." });
@@ -109,11 +109,11 @@ export class Sound {
     }
 
     // --- Handlers ---
-    handleMovement      = ()  => this.playSound("move");
-    handleTurnStart     = (d) => this.playSound(["dialogue", d.entityName, "greeting"], 0.4);
-    handleActionBlocked = (d) => this.playSound(["dialogue", d.entityName, "refusal"],  0.4);
-    handleDamaged       = (d) => this.playSound(["dialogue", d.entityName, "hurt"],     0.4);
-    handleDied          = (d) => this.playSound(["dialogue", d.entityName, "death"],    0.4);
+    handleMovement = () => this.playSound("move");
+    handleTurnStart = (d) => this.playSound(["dialogue", d.entityName, "greeting"], 0.4);
+    handleActionBlocked = (d) => this.playSound(["dialogue", d.entityName, "refusal"], 0.4);
+    handleDamaged = (d) => this.playSound(["dialogue", d.entityName, "hurt"], 0.4);
+    handleDied = (d) => this.playSound(["dialogue", d.entityName, "death"], 0.4);
 
     playSound(path, volume = 0.1) {
         const keys = Array.isArray(path) ? path : [path];
@@ -136,7 +136,7 @@ export class Sound {
 
         const instance = audio.cloneNode();
         instance.volume = volume;
-        instance.play().catch(() => {});
+        instance.play().catch(() => { });
     }
 
     playMusic(name, volume = 0.3) {
@@ -147,7 +147,7 @@ export class Sound {
         }
         this.stopMusic();
         track.volume = volume;
-        track.play().catch(() => {});
+        track.play().catch(() => { });
         this.currentMusic = track;
     }
 

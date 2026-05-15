@@ -30,6 +30,7 @@ export class Entity extends EventSystem {
 
         // Combat info
         this.name = name;
+        this.resourceName = this.name;
         this.party = this.name;
         this.actionPoints = 0;
         this.health = this.maxHealth;
@@ -70,16 +71,15 @@ export class Entity extends EventSystem {
     takeDamage(damage) {
         if (this.status.has("dead")) return;
         this.health -= damage;
-        eventSystem.publish("hurt", {
-            entityName: this.name,
-            eventAction: "takeDamage",
+        eventSystem.publish("entity:damaged", {
+            entityName: this.resourceName,
             health: this.health,
             damage: damage
         });
 
         if (this.health <= 0) {
             this.status.set("dead", true);
-            eventSystem.publish("entity:death", { entity: this });
+            eventSystem.publish("entity:death", { entity: this, entityName: this.name });
             this.publish("died", { entity: this });
             this.color = "gray";
         }
@@ -182,13 +182,13 @@ export class Entity extends EventSystem {
             ctx.rotate(this.rotation);
             ctx.translate(-this.center.x, -this.center.y);
         }
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.center.x - this.width / 2, this.center.y - this.height / 2, this.width, this.height);
-        if (this.showName) {
-            ctx.fillStyle = "black";
-            ctx.fillText(this.name, this.center.x - this.width / 20 * this.name.length, this.center.y + this.width / 1.25, this.width * 2);
-            ctx.fillText(`${Math.ceil(this.center.x)}, ${Math.ceil(this.center.y)}`, this.center.x - this.width / 20 * this.name.length, this.center.y + this.width, this.width * 2);
-        }
+        //ctx.fillStyle = this.color;
+        //ctx.fillRect(this.center.x - this.width / 2, this.center.y - this.height / 2, this.width, this.height);
+        //if (this.showName) {
+        //    ctx.fillStyle = "black";
+        //    ctx.fillText(this.name, this.center.x - this.width / 20 * this.name.length, this.center.y + this.width / 1.25, this.width * 2);
+        //    ctx.fillText(`${Math.ceil(this.center.x)}, ${Math.ceil(this.center.y)}`, this.center.x - this.width / 20 * this.name.length, this.center.y + this.width, this.width * 2);
+        //}
 
         ctx.restore();
     }
@@ -442,9 +442,7 @@ export class Player extends EventSystem {
     }
 
     processClick(cell, entity, cellSize) {
-        if (!this.answerQueue || this.answerQueue.length === 0) {
-            return;
-        }
+        if (!this.answerQueue || this.answerQueue.length === 0) return;
 
         const [key, value] = this.answerQueue[0];
 
@@ -453,18 +451,34 @@ export class Player extends EventSystem {
             return this.processClick(cell, entity, cellSize);
         }
 
-        if (!this.answer[key]) {
-            this.answer[key] = [];
+        if (value.range !== undefined) {
+            if (!this.entity.isCellIn(cell, value.range)) {
+                console.log("Invalid target: Selection is out of range!");
+                eventSystem.publish("entity:action-blocked", { entityName: this.entity.resourceName });
+                return;
+            }
         }
 
-        if (!this.entity.isCellIn(cell, value.range)) {
-            console.log("Selection is out of range!");
-            return;
-        }
+        if (!this.answer[key]) this.answer[key] = [];
 
         if (value.type === "entity") {
             if (entity != null) {
+
+                if (value.alignment === "enemy" && entity.party === this.entity.party) {
+                    console.log("Invalid target: You cannot attack an ally!");
+                    eventSystem.publish("entity:action-blocked", { entityName: this.entity.resourceName });
+                    return;
+                }
+                if (value.alignment === "ally" && entity.party !== this.entity.party) {
+                    console.log("Invalid target: You can only use this on an ally!");
+                    eventSystem.publish("entity:action-blocked", { entityName: this.entity.resourceName });
+                    return;
+                }
+
                 this.answer[key].push(entity);
+            } else {
+                console.log("Invalid target: This action requires you to click an Entity.");
+                eventSystem.publish("entity:action-blocked", { entityName: this.entity.resourceName });
             }
         } else if (value.type === "cell" && cell != null) {
             this.answer[key].push(cell);
