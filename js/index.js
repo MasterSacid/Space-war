@@ -9,13 +9,13 @@ import { Sound } from "./sound.js";
 import { AnimationPlayer, createAnimationCatalogue } from "./animation.js";
 import { eventSystem } from "./eventSystem.js";
 
-const captain = new PlayableEntity(new Coordinate(-32 - 4 * 64, 32), "Captain", "cyborg", "player");
+const captain = new PlayableEntity(new Coordinate(-32 - 4 * 64, 32), "Captain", "cyborg", "allies");
 captain.playerActions.push({ name: "meleeAttack", args: { cost: 1, range: 1, damage: 20, swing: 10, alignment: "enemy" } });
 
-const wizard = new PlayableEntity(new Coordinate(-32 - 6 * 64, 32), "Weizardo", "magician", "player");
+const wizard = new PlayableEntity(new Coordinate(-32 - 6 * 64, 32), "Weizardo", "magician", "allies");
 wizard.playerActions.push({ name: "rangedAttack", args: { cost: 1, range: 6, damage: 10, swing: 10, kickback: 0.1, speed: 400, alignment: "enemy" } });
 
-const woman = new PlayableEntity(new Coordinate(-32 - 5 * 64, 32), "Random Woman", "spear-woman", "player");
+const woman = new PlayableEntity(new Coordinate(-32 - 5 * 64, 32), "Random Woman", "spear-woman", "allies");
 woman.playerActions.push({ name: "areaAttack", args: { cost: 2, range: 7, radius: 2, damage: 10, swing: 20, kickback: -0.1, speed: 400 } });
 
 const meleeEntity = new Entity(new Coordinate(-96, 32), "Melee", "skeleton", "enemies");

@@ -31,8 +31,7 @@ export class Entity extends EventSystem {
         // Combat info
         this.name = name;
         this.type = type;
-        this.resourceName = this.name;
-        this.party = this.name;
+        this.party = party ?? this.name;
         this.actionPoints = 0;
         this.health = this.maxHealth;
         this.hasTurn = false;
@@ -73,7 +72,7 @@ export class Entity extends EventSystem {
         if (this.status.has("dead")) return;
         this.health -= damage;
         eventSystem.publish("entity:damaged", {
-            entityName: this.resourceName,
+            entity: this,
             health: this.health,
             damage: damage
         });
@@ -172,8 +171,24 @@ export class Entity extends EventSystem {
     draw(canvas) {
         const ctx = canvas.getContext('2d');
 
-        if (this.health <= 0) {
-            this.color = "gray";
+        if (!this.status.has("dead")) {
+            const barWidth = this.width;
+            const barHeight = 6;
+
+            const barX = this.center.x - barWidth / 2;
+            const barY = this.center.y - (this.height * 5 / 4);
+
+            const healthPercentage = Math.max(0, this.health / this.maxHealth);
+
+            ctx.fillStyle = "#ff0000";
+            ctx.fillRect(barX, barY, barWidth, barHeight);
+
+            ctx.fillStyle = "#55eeaa";
+            ctx.fillRect(barX, barY, barWidth * healthPercentage, barHeight);
+
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(barX, barY, barWidth, barHeight);
         }
 
         ctx.save();
@@ -496,7 +511,7 @@ export class Player extends EventSystem {
 
     played() {
         eventSystem.publish("player:played", {});
-        this.hasTurn = false;
+        this.hasAction = false;
         this.entity.showAura = false;
         this.targetAura = false;
         this.blastAura = false;

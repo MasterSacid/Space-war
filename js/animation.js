@@ -102,7 +102,7 @@ export class AnimationPlayer {
     }
 
     handleIdle = (data) => {
-        if (!data || data.entity !== this.entity.type) return;
+        if (!data || data.entity !== this.entity) return;
         if (this.isLocked) return;
         this.play(this.defaultAnimation, { loop: true });
     };
@@ -114,12 +114,12 @@ export class AnimationPlayer {
 
     handleMoveEnd = (data) => {
         if (this.isLocked) return;
-        if (!data || data.entity !== this.entity.type) return;
+        if (!data || data.entity !== this.entity) return;
         this.play(this.defaultAnimation, { loop: true });
     };
 
     handleAttack = (data) => {
-        if (!data || data.entity !== this.entity.type) return;
+        if (!data || data.entity !== this.entity) return;
 
         this.isLocked = true;
 
@@ -133,7 +133,7 @@ export class AnimationPlayer {
     };
 
     handleHurt = (data) => {
-        if (!data || data.entity !== this.entity.type) return;
+        if (!data || data.entity !== this.entity) return;
 
         this.isLocked = true;
 
@@ -147,7 +147,7 @@ export class AnimationPlayer {
     };
 
     handleDeath = (data) => {
-        if (!data || data.entity !== this.entity.type) return;
+        if (!data || data.entity !== this.entity) return;
         this.isLocked = true;
 
         this.play("death", {

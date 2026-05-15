@@ -39,15 +39,15 @@ export class Combat {
 
         this.startRound();
 
-        eventSystem.publish("combat:start", { eventAction: "combatStart" });
+        eventSystem.publish("combat:start");
 
         eventSystem.subscribe("player:played", () => {
             if (this.player.hasTurn) {
                 if (this.player.entity.actionPoints > 0) {
-                    console.log('has points');
+                    console.log('has action points');
                     this.actionLoop();
                 } else {
-                    console.log('has none');
+                    console.log('has no action points');
                     this.processNextTurn();
                 }
             }
@@ -77,11 +77,6 @@ export class Combat {
 
         const entity = this.turnQueue.shift();
 
-        if (entity.party === this.playersParty) {
-            this.player.entity = entity;
-            this.player.viewport.coordinate = entity.center;
-        }
-
         if (entity.status.has("dead")) {
             this.processNextTurn();
             return;
@@ -99,10 +94,14 @@ export class Combat {
             return;
         }
 
-
-        if (entity.party === this.player.entity.party && Math.random() < 1 / 3) {
-            eventSystem.publish("entity:turn-start", { entity: entity })
+        if (entity.party === this.player.entity.party) {
+            if (Math.random() < 1 / 3) {
+                eventSystem.publish("entity:turn-start", { entity: entity })
+            }
+            this.player.entity = entity;
+            this.player.viewport.coordinate = entity.center;
         }
+
         this.activeEntity = entity;
 
         this.actionLoop();
