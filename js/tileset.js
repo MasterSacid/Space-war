@@ -1,3 +1,5 @@
+const PALETTE_TILE_DISPLAY_SIZE = 32; // must match .tile-option width/height in index.html
+
 export class Tileset {
     constructor({ name, imageUrl, tileSize = 32, tilesPerRow = 10 }) {
         this.name = name;
@@ -50,12 +52,16 @@ export class Tileset {
 }
 
 export class TilePalette {
-    constructor(container, { onSelect } = {}) {
+    constructor(container, { onSelect, onZIndexChange, onCostChange } = {}) {
         this.container = container;
         this.onSelect = onSelect;
+        this.onZIndexChange = onZIndexChange;
+        this.onCostChange = onCostChange;
         this.tilesets = [];
         this.selectedButton = null;
         this.selected = null;
+        this.selectedZIndex = 0;
+        this.selectedCost = 1;
     }
 
     addTileset(tileset) {
@@ -68,6 +74,9 @@ export class TilePalette {
         const previousSelection = this.selected;
         this.selectedButton = null;
         this.container.replaceChildren();
+
+        const controls = document.createElement("div");
+        controls.className = "tile-controls";
 
         const toolRow = document.createElement("div");
         toolRow.className = "tile-tools";
@@ -84,7 +93,50 @@ export class TilePalette {
             this.markSelected(eraserButton);
         }
         toolRow.appendChild(eraserButton);
-        this.container.appendChild(toolRow);
+        controls.appendChild(toolRow);
+
+        const layerControl = document.createElement("label");
+        layerControl.className = "tile-layer-control";
+        layerControl.textContent = "Z-Index";
+
+        const layerSelect = document.createElement("select");
+        layerSelect.className = "tile-layer-select";
+        layerSelect.title = "Tile z-index";
+        layerSelect.setAttribute("aria-label", "Tile z-index");
+
+        for (const zIndex of [0, 1]) {
+            const option = document.createElement("option");
+            option.value = String(zIndex);
+            option.textContent = String(zIndex);
+            layerSelect.appendChild(option);
+        }
+
+        layerSelect.value = String(this.selectedZIndex);
+        layerSelect.addEventListener("change", () => {
+            this.setZIndex(layerSelect.value);
+        });
+
+        layerControl.appendChild(layerSelect);
+        controls.appendChild(layerControl);
+
+        const costControl = document.createElement("label");
+        costControl.className = "tile-cost-control";
+        costControl.textContent = "Tile Cost";
+
+        const costInput = document.createElement("input");
+        costInput.type = "number";
+        costInput.step = "1";
+        costInput.className = "tile-cost-input";
+        costInput.title = "Tile cost";
+        costInput.setAttribute("aria-label", "Tile cost");
+        costInput.value = String(this.selectedCost);
+        costInput.addEventListener("input", () => {
+            this.setCost(costInput.value);
+        });
+
+        costControl.appendChild(costInput);
+        controls.appendChild(costControl);
+        this.container.appendChild(controls);
 
         for (const tileset of this.tilesets) {
             const section = document.createElement("section");
@@ -115,9 +167,10 @@ export class TilePalette {
                 button.type = "button";
                 button.className = "tile-option";
                 button.title = `${tileset.name} #${i}`;
+                const scale = PALETTE_TILE_DISPLAY_SIZE / tileset.tileSize;
                 button.style.backgroundImage = `url("${tileset.imageUrl}")`;
-                button.style.backgroundPosition = `-${sx}px -${sy}px`;
-                button.style.backgroundSize = `${tileset.image.naturalWidth}px ${tileset.image.naturalHeight}px`;
+                button.style.backgroundPosition = `-${sx * scale}px -${sy * scale}px`;
+                button.style.backgroundSize = `${tileset.image.naturalWidth * scale}px ${tileset.image.naturalHeight * scale}px`;
                 button.addEventListener("click", () => {
                     this.select(button, selection);
                 });
@@ -142,6 +195,22 @@ export class TilePalette {
 
         if (this.onSelect) {
             this.onSelect(selection);
+        }
+    }
+
+    setZIndex(value) {
+        const zIndex = Number.parseInt(value, 10);
+        this.selectedZIndex = zIndex === 1 ? 1 : 0;
+
+        if (this.onZIndexChange) {
+            this.onZIndexChange(this.selectedZIndex);
+        }
+    }
+
+    setCost(value) {
+        this.selectedCost = Number.parseInt(value, 10);
+        if (this.onCostChange) {
+            this.onCostChange(this.selectedCost);
         }
     }
 

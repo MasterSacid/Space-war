@@ -495,8 +495,5 @@ export class Player extends EventSystem {
         window.addEventListener("keyup", (e) => this.keys[e.key] = false);
     }
 
-    update(dt) {
-        if (!this.keys) return;
-        if (this.keys['a']) this.mode = "attack";
-    }
+    update(dt) { }
 }
