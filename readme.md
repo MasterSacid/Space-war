@@ -29,14 +29,3 @@ Oyun, farklı stratejik roller üstlenen karakter sınıflarını barındırır:
 
 ![Oyun İçi Görüntü 2: Yetenek Paneli ve Aksiyon Seçimi](img/screenshot2.png)
 *Görsel 2: Sağ taraftaki kontrol paneli, yetenek seçimi ve turun uygulanması.*
-
-## Kurulum ve Çalıştırma
-Proje istemci tarafında (client-side) çalışacak şekilde tasarlanmıştır ve standart web teknolojileri (HTML, CSS, JavaScript) ile oluşturulmuştur.
-
-1. Projeyi bilgisayarınıza indirin veya klonlayın:
-   ```bash
-   git clone https://github.com/MasterSacid/Space-war.git
-   ```
-2. Klonladığınız dizine gidin.
-3. Herhangi bir derleyici veya paket yöneticisine (npm, yarn vb.) ihtiyaç duymadan, kök dizindeki `index.html` dosyasını güncel bir web tarayıcısında açarak oyunu doğrudan çalıştırabilirsiniz.
-*(Not: Tarayıcı güvenlik politikaları gereği bazı JavaScript modülleri yerel dosya sisteminde çalışmazsa, projeyi VS Code "Live Server" eklentisi ile açmanız tavsiye edilir.)*
