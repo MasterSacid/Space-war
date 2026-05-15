@@ -84,7 +84,9 @@ export class Sound {
                 deselect: [
                     "./sounds/additional/ui_deselect.wav",
                 ]
-            }
+            },
+
+            Spell:{}
         };
 
         this.musicCatalogue = {
