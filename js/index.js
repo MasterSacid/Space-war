@@ -88,7 +88,6 @@ class App {
         );
 
         this.sound = new Sound();
-        this.sound.playMusic("main", 0.07);
         this.graphics = new Graphics(this.canvas, this.player, this.map, this.tilesets, this.initialMapData);
 
         this.combat = new Combat(this.player, [captain, wizard, woman, meleeEntity, areaEntity, rangedEntity, meleeEntity, meleeEntity2, meleeEntity3], this.map);
@@ -139,6 +138,7 @@ class App {
             this.mainMenu.off();
             this.spaceScene.smallMode = true;
 
+            this.sound.playMusic("main", 0.07);
             this.story();
         });
 
